@@ -88,7 +88,7 @@ main(int argc, char *argv[])
   }
 
   assert((IPB * sizeof(struct dinode)) <= BSIZE);
-  assert((BSIZE % sizeof(struct dirent)) == 0);
+  assert((BSIZE / sizeof(struct dirent)) * sizeof(struct dirent) <= BSIZE);
 
   fsfd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC, 0666);
   if(fsfd < 0)
@@ -172,7 +172,7 @@ main(int argc, char *argv[])
   // fix size of root inode dir
   rinode(rootino, &din);
   off = xint(din.size);
-  off = ((off/BSIZE) + 1) * BSIZE;
+  off = ((off + sizeof(struct dirent) - 1) / sizeof(struct dirent)) * sizeof(struct dirent);
   din.size = xint(off);
   winode(rootino, &din);
 

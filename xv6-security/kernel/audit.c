@@ -57,8 +57,12 @@ audit_read(char *buf, int bufsz)
   if(p == 0 || p->uid != 0)
     return -1;
   acquire(&audit_lock);
-  idx = tail;
-  for(int i = 0; i < count && copied + (int)sizeof(struct audit_entry) <= bufsz; i++){
+  int capacity = bufsz / sizeof(struct audit_entry);
+  int nentry = count;
+  if(nentry > capacity)
+    nentry = capacity;
+  idx = (head - nentry + AUDIT_BUF_SIZE) % AUDIT_BUF_SIZE;
+  for(int i = 0; i < nentry; i++){
     memmove(buf + copied, &ring[idx], sizeof(struct audit_entry));
     copied += sizeof(struct audit_entry);
     idx = (idx + 1) % AUDIT_BUF_SIZE;

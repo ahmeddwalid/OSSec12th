@@ -87,7 +87,7 @@ ifneq ($(shell $(CC) -dumpspecs 2>/dev/null | grep -e '[^f]nopie'),)
 CFLAGS += -fno-pie -nopie
 endif
 
-LDFLAGS = -z max-page-size=4096
+LDFLAGS = -z max-page-size=4096 --no-warn-rwx-segments
 
 $K/kernel: $(OBJS) $K/kernel.ld
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) 
@@ -157,6 +157,7 @@ UPROGS=\
 	$U/_chown\
 	$U/_perm_test\
 	$U/_audit_dump\
+	$U/_compliance_test\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
@@ -188,6 +189,8 @@ QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
 qemu: check-qemu-version $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
+
+qemu-nox: qemu
 
 .gdbinit: .gdbinit.tmpl-riscv
 	sed "s/:1234/:$(GDBPORT)/" < $^ > $@
