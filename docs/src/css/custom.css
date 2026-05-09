@@ -1,0 +1,23 @@
+:root {
+  --ifm-color-primary: #176b62;
+  --ifm-color-primary-dark: #145f57;
+  --ifm-color-primary-darker: #11554f;
+  --ifm-color-primary-darkest: #0d403c;
+  --ifm-color-primary-light: #1d7f74;
+  --ifm-color-primary-lighter: #238f82;
+  --ifm-color-primary-lightest: #2aa89a;
+  --ifm-code-font-size: 95%;
+}
+
+.hero {
+  background: #0f2f2c;
+  color: #ffffff;
+}
+
+.table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+}
+
+code {
+  border-radius: 4px;
+}
