@@ -661,3 +661,27 @@ sys_chown(void)
   end_op();
   return 0;
 }
+
+uint64
+sys_audit_read(void)
+{
+  uint64 addr;
+  int bufsz;
+  char *kbuf;
+  int n;
+  struct proc *p = myproc();
+
+  argaddr(0, &addr);
+  argint(1, &bufsz);
+  if(bufsz <= 0 || p->uid != 0)
+    return -1;
+  if(bufsz > PGSIZE)
+    bufsz = PGSIZE;
+  if((kbuf = kalloc()) == 0)
+    return -1;
+  n = audit_read(kbuf, bufsz);
+  if(n >= 0 && copyout(p->pagetable, addr, kbuf, n) < 0)
+    n = -1;
+  kfree(kbuf);
+  return n;
+}

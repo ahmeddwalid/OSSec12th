@@ -9,6 +9,11 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+// audit.c
+void            audit_init(void);
+void            audit_log(int, int);
+int             audit_read(char*, int);
+
 // auth.c
 void            auth_init(void);
 

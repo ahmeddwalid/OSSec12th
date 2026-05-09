@@ -108,6 +108,7 @@ extern uint64 sys_whoami(void);
 extern uint64 sys_login(void);
 extern uint64 sys_chmod(void);
 extern uint64 sys_chown(void);
+extern uint64 sys_audit_read(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -140,22 +141,27 @@ static uint64 (*syscalls[])(void) = {
 [SYS_login]   sys_login,
 [SYS_chmod]   sys_chmod,
 [SYS_chown]   sys_chown,
+[SYS_audit_read] sys_audit_read,
 };
 
 void
 syscall(void)
 {
   int num;
+  uint64 ret;
   struct proc *p = myproc();
 
   num = p->trapframe->a7;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->trapframe->a0
-    p->trapframe->a0 = syscalls[num]();
+    ret = syscalls[num]();
+    p->trapframe->a0 = ret;
   } else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);
-    p->trapframe->a0 = -1;
+    ret = -1;
+    p->trapframe->a0 = ret;
   }
+  audit_log(num, (int)ret);
 }

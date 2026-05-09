@@ -31,6 +31,7 @@ int passwd(char*, char*, char*);
 int whoami(char*, int);
 int chmod(char*, int);
 int chown(char*, int, int);
+int audit_read(char*, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

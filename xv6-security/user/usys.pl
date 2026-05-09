@@ -49,3 +49,4 @@ entry("passwd");
 entry("whoami");
 entry("chmod");
 entry("chown");
+entry("audit_read");

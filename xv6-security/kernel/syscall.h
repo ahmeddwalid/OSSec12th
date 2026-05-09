@@ -27,3 +27,4 @@
 #define SYS_login    26
 #define SYS_chmod    27
 #define SYS_chown    28
+#define SYS_audit_read 29
