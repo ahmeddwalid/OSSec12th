@@ -16,6 +16,7 @@
 #include "file.h"
 #include "fcntl.h"
 #include "auth.h"
+#include "perms.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -342,6 +343,15 @@ sys_open(void)
     return -1;
   }
 
+  if(ip->type != T_DEVICE){
+    if((!(omode & O_WRONLY) && perm_check(ip, 'r') == 0) ||
+       (((omode & O_WRONLY) || (omode & O_RDWR) || (omode & O_TRUNC)) && perm_check(ip, 'w') == 0)){
+      iunlockput(ip);
+      end_op();
+      return -1;
+    }
+  }
+
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
     if(f)
       fileclose(f);
@@ -438,11 +448,27 @@ sys_exec(void)
   char path[MAXPATH], *argv[MAXARG];
   int i;
   uint64 uargv, uarg;
+  struct inode *ip;
 
   argaddr(1, &uargv);
   if(argstr(0, path, MAXPATH) < 0) {
     return -1;
   }
+
+  begin_op();
+  if((ip = namei(path)) == 0){
+    end_op();
+    return -1;
+  }
+  ilock(ip);
+  if(ip->type != T_FILE || perm_check(ip, 'x') == 0){
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+  iunlockput(ip);
+  end_op();
+
   memset(argv, 0, sizeof(argv));
   for(i=0;; i++){
     if(i >= NELEM(argv)){
@@ -577,4 +603,61 @@ sys_whoami(void)
   if(copyout(p->pagetable, addr, buf, n + 1) < 0)
     return -1;
   return n;
+}
+
+uint64
+sys_chmod(void)
+{
+  char path[MAXPATH];
+  int mode;
+  struct inode *ip;
+  struct proc *p = myproc();
+
+  argint(1, &mode);
+  if(argstr(0, path, MAXPATH) < 0)
+    return -1;
+  begin_op();
+  if((ip = namei(path)) == 0){
+    end_op();
+    return -1;
+  }
+  ilock(ip);
+  if(p->uid != 0 && ip->uid != p->uid){
+    iunlockput(ip);
+    end_op();
+    return -1;
+  }
+  ip->mode = mode & 0777;
+  iupdate(ip);
+  iunlockput(ip);
+  end_op();
+  return 0;
+}
+
+uint64
+sys_chown(void)
+{
+  char path[MAXPATH];
+  int uid, gid;
+  struct inode *ip;
+  struct proc *p = myproc();
+
+  argint(1, &uid);
+  argint(2, &gid);
+  if(argstr(0, path, MAXPATH) < 0)
+    return -1;
+  if(p->uid != 0)
+    return -1;
+  begin_op();
+  if((ip = namei(path)) == 0){
+    end_op();
+    return -1;
+  }
+  ilock(ip);
+  ip->uid = uid;
+  ip->gid = gid;
+  iupdate(ip);
+  iunlockput(ip);
+  end_op();
+  return 0;
 }

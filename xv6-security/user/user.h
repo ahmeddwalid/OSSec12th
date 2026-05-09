@@ -29,6 +29,8 @@ int useradd(char*, char*, int);
 int userdel(char*);
 int passwd(char*, char*, char*);
 int whoami(char*, int);
+int chmod(char*, int);
+int chown(char*, int, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

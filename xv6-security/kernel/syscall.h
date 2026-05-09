@@ -25,3 +25,5 @@
 #define SYS_passwd   24
 #define SYS_whoami   25
 #define SYS_login    26
+#define SYS_chmod    27
+#define SYS_chown    28

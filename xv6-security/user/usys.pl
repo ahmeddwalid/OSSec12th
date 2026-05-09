@@ -47,3 +47,5 @@ entry("useradd");
 entry("userdel");
 entry("passwd");
 entry("whoami");
+entry("chmod");
+entry("chown");

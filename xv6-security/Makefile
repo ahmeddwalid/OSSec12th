@@ -5,6 +5,7 @@ OBJS = \
   $K/entry.o \
   $K/start.o \
 	$K/auth.o \
+	$K/perms.o \
   $K/console.o \
   $K/printf.o \
   $K/uart.o \
@@ -151,6 +152,9 @@ UPROGS=\
 	$U/_userdel\
 	$U/_passwd\
 	$U/_whoami\
+	$U/_chmod\
+	$U/_chown\
+	$U/_perm_test\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

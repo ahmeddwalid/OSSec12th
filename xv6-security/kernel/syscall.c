@@ -106,6 +106,8 @@ extern uint64 sys_userdel(void);
 extern uint64 sys_passwd(void);
 extern uint64 sys_whoami(void);
 extern uint64 sys_login(void);
+extern uint64 sys_chmod(void);
+extern uint64 sys_chown(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -136,6 +138,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_passwd]  sys_passwd,
 [SYS_whoami]  sys_whoami,
 [SYS_login]   sys_login,
+[SYS_chmod]   sys_chmod,
+[SYS_chown]   sys_chown,
 };
 
 void
