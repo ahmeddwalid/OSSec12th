@@ -3,8 +3,8 @@
 const config = {
   title: 'xv6 Medical Device Security',
   tagline: 'CCY4304 12th Project documentation',
-  url: 'https://ahmeddwalid.github.io',
-  baseUrl: '/OSSec12th/',
+  url: 'https://ossec.ahmeddwalid.me',
+  baseUrl: '/',
   organizationName: 'ahmeddwalid',
   projectName: 'OSSec12th',
   onBrokenLinks: 'throw',

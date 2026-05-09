@@ -61,7 +61,7 @@ npm run build
 
 After GitHub Pages deployment, the documentation is expected at:
 
-https://ahmeddwalid.github.io/OSSec12th/
+https://ossec.ahmeddwalid.me/
 
 ## Quality Gates
 
