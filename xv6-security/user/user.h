@@ -24,6 +24,11 @@ int getpid(void);
 char* sys_sbrk(int,int);
 int pause(int);
 int uptime(void);
+int login(char*, char*);
+int useradd(char*, char*, int);
+int userdel(char*);
+int passwd(char*, char*, char*);
+int whoami(char*, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -9,6 +9,9 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+// auth.c
+void            auth_init(void);
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);

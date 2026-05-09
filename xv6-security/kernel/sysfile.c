@@ -15,6 +15,7 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "auth.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -502,4 +503,78 @@ sys_pipe(void)
     return -1;
   }
   return 0;
+}
+
+uint64
+sys_login(void)
+{
+  char username[16];
+  char password[64];
+
+  if(argstr(0, username, sizeof(username)) < 0 ||
+     argstr(1, password, sizeof(password)) < 0)
+    return -1;
+  return auth_login(username, password);
+}
+
+uint64
+sys_useradd(void)
+{
+  char username[16];
+  char password[64];
+  int role;
+
+  argint(2, &role);
+  if(argstr(0, username, sizeof(username)) < 0 ||
+     argstr(1, password, sizeof(password)) < 0)
+    return -1;
+  return auth_useradd(username, password, role);
+}
+
+uint64
+sys_userdel(void)
+{
+  char username[16];
+
+  if(argstr(0, username, sizeof(username)) < 0)
+    return -1;
+  return auth_userdel(username);
+}
+
+uint64
+sys_passwd(void)
+{
+  char username[16];
+  char old_pw[64];
+  char new_pw[64];
+
+  if(argstr(0, username, sizeof(username)) < 0 ||
+     argstr(1, old_pw, sizeof(old_pw)) < 0 ||
+     argstr(2, new_pw, sizeof(new_pw)) < 0)
+    return -1;
+  return auth_passwd(username, old_pw, new_pw);
+}
+
+uint64
+sys_whoami(void)
+{
+  uint64 addr;
+  int bufsz;
+  char buf[96];
+  int n;
+  struct proc *p = myproc();
+
+  argaddr(0, &addr);
+  argint(1, &bufsz);
+  if(bufsz <= 0)
+    return -1;
+  n = auth_whoami(buf, sizeof(buf));
+  if(n < 0)
+    return -1;
+  if(n >= bufsz)
+    n = bufsz - 1;
+  buf[n] = 0;
+  if(copyout(p->pagetable, addr, buf, n + 1) < 0)
+    return -1;
+  return n;
 }

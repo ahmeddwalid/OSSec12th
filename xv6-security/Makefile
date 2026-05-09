@@ -4,6 +4,7 @@ U=user
 OBJS = \
   $K/entry.o \
   $K/start.o \
+	$K/auth.o \
   $K/console.o \
   $K/printf.o \
   $K/uart.o \
@@ -145,6 +146,11 @@ UPROGS=\
 	$U/_logstress\
 	$U/_forphan\
 	$U/_dorphan\
+	$U/_login\
+	$U/_useradd\
+	$U/_userdel\
+	$U/_passwd\
+	$U/_whoami\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
