@@ -3,11 +3,11 @@ sidebar_position: 4
 title: Phase 2 File Permissions
 ---
 
-# Phase 2 — File Permissions
+# Phase 2: File Permissions
 
 ## Motivation
 
-After Phase 1 establishes *who* the user is, Phase 2 answers *what* they are allowed to touch. Without file permissions, a logged-in patient can open `/device/config`, overwrite `/dosage/insulin.log`, or read the audit log — defeating the entire point of authentication.
+After Phase 1 establishes *who* the user is, Phase 2 answers *what* they are allowed to touch. Without file permissions, a logged-in patient can open `/device/config`, overwrite `/dosage/insulin.log`, or read the audit log: defeating the entire point of authentication.
 
 Phase 2 adds Unix-style DAC (Discretionary Access Control) to every inode.
 
@@ -37,7 +37,7 @@ Example: `0644` = `rw-r--r--`:
 ## What Changed in `struct dinode`
 
 ```c
-/* kernel/fs.h — new fields on the on-disk inode */
+/* kernel/fs.h: new fields on the on-disk inode */
 struct dinode {
   short type;    // existing: T_FILE, T_DIR, T_DEVICE
   short mode;    // NEW: octal permission bits
@@ -65,7 +65,7 @@ The in-memory `struct inode` mirrors these fields. `ialloc`, `iupdate`, `ilock`,
 ```mermaid
 flowchart TD
     A["perm_check(inode, access_type)"] --> B{caller is admin?}
-    B -- yes --> Z["ALLOW — admin bypass"]
+    B -- yes --> Z["ALLOW: admin bypass"]
     B -- no --> C{caller uid == inode uid?}
     C -- yes --> D["check owner bits"]
     C -- no --> E{caller gid == inode gid?}
@@ -109,6 +109,10 @@ chown /dosage/insulin.log 1 1
 Both syscalls require the caller to be admin or the owner of the target file. A patient cannot `chown` their own records to another user.
 
 ## Compliance Coverage
+
+> **Screenshot placeholder** — Permission enforcement in action. Log in as `patient1`, then attempt `cat /device/config` and `cat /patient/records`. The first should print a permission denied error; the second should succeed. Capture both outputs. Save to `docs/static/img/screenshots/phase2-perm-denied.png`.
+
+![QEMU terminal showing patient denied on /device/config and allowed on /patient/records](/img/screenshots/phase2-perm-denied.png)
 
 | Test | What it checks |
 |------|---------------|

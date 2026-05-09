@@ -6,7 +6,7 @@ const sidebars: SidebarsConfig = {
     'environment-setup',
     {
       type: 'category',
-      label: '🔐 Security Phases',
+      label: 'Security Phases',
       collapsed: false,
       items: [
         'phase1-authentication',
@@ -16,13 +16,13 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: '🧪 Testing & Compliance',
+      label: 'Testing and Compliance',
       collapsed: false,
       items: ['bonus-compliance-testing'],
     },
     {
       type: 'category',
-      label: '📋 Standards & Context',
+      label: 'Standards and Context',
       collapsed: false,
       items: ['fda-iec62443-context'],
     },

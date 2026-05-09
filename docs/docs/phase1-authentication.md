@@ -3,20 +3,20 @@ sidebar_position: 3
 title: Phase 1 Authentication
 ---
 
-# Phase 1 — Authentication
+# Phase 1: Authentication
 
 ## Motivation
 
 Stock xv6 calls `exec("sh", ...)` in `init.c` and the shell runs immediately with no identity. Any process is implicitly trusted equally. For a medical device this is catastrophic: a patient application could call any syscall, read any file, modify any device configuration.
 
-Phase 1 imposes an identity boundary at the earliest possible moment — before the first shell command executes.
+Phase 1 imposes an identity boundary at the earliest possible moment, before the first shell command executes.
 
 ## What Changed in `struct proc`
 
 Before Phase 1, `struct proc` had no user-identity fields at all. After Phase 1:
 
 ```c
-/* kernel/proc.h — new fields */
+/* kernel/proc.h: new fields */
 struct proc {
   // ... existing fields ...
   int uid;                   // numeric user ID
@@ -78,6 +78,10 @@ sequenceDiagram
 
 ## Syscall Surface
 
+> **Screenshot placeholder** — QEMU terminal login sequence. Boot xv6, attempt an incorrect password, then log in correctly as `root`. Capture the `Login incorrect` message followed by the shell prompt `$`. Save to `docs/static/img/screenshots/phase1-login-sequence.png`.
+
+![QEMU terminal showing login failure then successful root login](/img/screenshots/phase1-login-sequence.png)
+
 | Syscall | Who can call | Description |
 |---------|-------------|-------------|
 | `login(user, pass)` | Anyone | Authenticate; sets kernel identity |
@@ -125,7 +129,7 @@ int main(void) {
 ## Security Notes
 
 - The hash in this teaching implementation is a simple XOR+sum over the password bytes. **This is not production-quality.** A real system would use Argon2id or bcrypt with a per-account salt.
-- Authenticated flag is reset to 0 on `fork` **before** exec (so a child cannot inherit a logged-in session without going through login again if the parent exits without passing the shell). The current design inherits credentials so the shell and child processes share the parent's identity — appropriate for a single-user session model.
+- Authenticated flag is reset to 0 on `fork` **before** exec (so a child cannot inherit a logged-in session without going through login again if the parent exits without passing the shell). The current design inherits credentials so the shell and child processes share the parent's identity, which is appropriate for a single-user session model.
 
 
 Remember to copy credentials on fork. If the child shell loses identity, later permission checks and audit entries become misleading.

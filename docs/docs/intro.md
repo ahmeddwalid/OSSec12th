@@ -7,15 +7,15 @@ title: Project Overview
 
 ## The Medical-Device Security Problem
 
-In 2019, Medtronic disclosed that its **MiniMed 508 insulin pump** could be wirelessly commanded by an attacker to deliver a lethal overdose — with no authentication whatsoever. The FDA issued a Class I recall (the most severe level). Root cause: the device OS had no concept of user identity, no file-level access controls, and no audit trail. Any process could do anything.
+In 2019, Medtronic disclosed that its **MiniMed 508 insulin pump** could be wirelessly commanded by an attacker to deliver a lethal overdose, with no authentication whatsoever. The FDA issued a Class I recall (the most severe level). Root cause: the device OS had no concept of user identity, no file-level access controls, and no audit trail. Any process could do anything.
 
 This project answers the question: *what is the minimum OS-level security infrastructure a medical device must have?*
 
-We retrofit **xv6-riscv** — MIT's teaching kernel used in OS courses worldwide — with three security layers that map directly to the controls the FDA's 2023 cybersecurity guidance and IEC 62443 require.
+We retrofit **xv6-riscv**, MIT's teaching kernel used in OS courses worldwide, with three security layers that map directly to the controls the FDA's 2023 cybersecurity guidance and IEC 62443 require.
 
 ## What xv6 Is
 
-xv6 is an intentionally minimal re-implementation of UNIX v6 in ~10 000 lines of C and RISC-V assembly. It was designed by Robert Morris, Frans Kaashoek, and Russ Cox at MIT to be the simplest possible real kernel — bootable, multi-process, with a file system and a shell. Every line is readable in a day.
+xv6 is an intentionally minimal re-implementation of UNIX v6 in ~10 000 lines of C and RISC-V assembly. It was designed by Robert Morris, Frans Kaashoek, and Russ Cox at MIT to be the simplest possible real kernel: bootable, multi-process, with a file system and a shell. Every line is readable in a day.
 
 That minimalism is exactly what makes it the right substrate for this project. Every security hook we add is immediately visible in context. There is no driver jungle, no MM complexity, no hidden abstraction. The kernel is transparent.
 
@@ -23,9 +23,9 @@ That minimalism is exactly what makes it the right substrate for this project. E
 
 | Phase | What it adds | Why it matters |
 |-------|-------------|----------------|
-| **1 – Authentication** | Per-process UID/GID/role; boot-time `login` program; `/etc/passwd` credential store | Establishes identity — the foundation of all other controls |
-| **2 – File Permissions** | Unix `rwxrwxrwx` mode bits + owner on every inode; DAC enforcement at 4 kernel hook points | Ensures only the right role (clinician/admin) can touch patient files |
-| **3 – Audit Log** | 256-entry kernel ring buffer; every syscall decision logged with timestamp, UID, result | Provides the non-repudiation trail the FDA requires |
+| **1: Authentication** | Per-process UID/GID/role; boot-time `login` program; `/etc/passwd` credential store | Establishes identity: the foundation of all other controls |
+| **2: File Permissions** | Unix `rwxrwxrwx` mode bits + owner on every inode; DAC enforcement at 4 kernel hook points | Ensures only the right role (clinician/admin) can touch patient files |
+| **3: Audit Log** | 256-entry kernel ring buffer; every syscall decision logged with timestamp, UID, result | Provides the non-repudiation trail the FDA requires |
 
 The **bonus `compliance_test`** program runs 18 automated tests and produces a structured pass/fail report that maps each test to a regulatory requirement.
 
@@ -34,9 +34,9 @@ The **bonus `compliance_test`** program runs 18 automated tests and produces a s
 ```mermaid
 graph TD
     A["User Programs<br/>(login, shell, compliance_test)"] --> B["syscall interface (ECALL)"]
-    B --> C["auth_check() – Phase 1"]
-    C --> D["perm_check() – Phase 2"]
-    D --> E["audit_log() – Phase 3"]
+    B --> C["auth_check(): Phase 1"]
+    C --> D["perm_check(): Phase 2"]
+    D --> E["audit_log(): Phase 3"]
     E --> F["kernel resources<br/>(proc table, file system, audit buffer)"]
     
     style A fill:#1e3a5f,color:#e2e8f0
@@ -73,21 +73,21 @@ OSSec12th/
 ## Quick Start
 
 ```bash
-# 1 – Install toolchain (Fedora)
+# 1: Install toolchain (Fedora)
 sudo dnf install gcc-riscv64-linux-gnu qemu-system-riscv
 
-# 2 – Build and boot
+# 2: Build and boot
 cd xv6-security
 make qemu
 
-# 3 – Log in as admin
+# 3: Log in as admin
 login: root
 password: root123
 
-# 4 – Run compliance tests
+# 4: Run compliance tests
 $ compliance_test
 
-# 5 – Quit QEMU
+# 5: Quit QEMU
 Ctrl-A  X
 ```
 
@@ -98,7 +98,7 @@ Ctrl-A  X
 | Ahmed Walid Ibrahim | 221011183 |
 | Ahmed Mohamed Mahmoud | 221010720 |
 
-**Course:** CCY4304 – Operating Systems Security  
+**Course:** CCY4304: Operating Systems Security  
 **Lecturer:** Prof. Dr. Ayman Adel Abdel-Hamid  
 **TA:** Abdelrahman Solyman
 
