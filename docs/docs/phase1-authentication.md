@@ -21,7 +21,7 @@ struct proc {
   // ... existing fields ...
   int uid;                   // numeric user ID
   int gid;                   // numeric group ID
-  int role;                  // ROLE_ADMIN / ROLE_CLINICIAN / ROLE_PATIENT
+  int role;                  // ROLE_ADMIN / ROLE_DOCTOR / ROLE_PATIENT
   char username[16];         // for audit and whoami
   int authenticated;         // 0 until login() syscall succeeds
 };
@@ -32,24 +32,23 @@ Forked children inherit all five fields, so every descendant of a logged-in shel
 ## The `/etc/passwd` Format
 
 ```
-username:hashed_password:uid:gid:role
+username|uid|gid|role|hash
 ```
 
 | Field | Example | Notes |
 |-------|---------|-------|
-| `username` | `root` | Max 15 chars |
-| `hashed_password` | `a3f8...` | Simple XOR+sum hash (teaching model) |
+| `username` | `admin` | Max 15 chars |
 | `uid` | `0` | 0 = admin |
 | `gid` | `0` | group ID |
-| `role` | `0` | 0=admin, 1=clinician, 2=patient |
+| `role` | `0` | 0=admin, 1=doctor, 2=patient |
+| `hash` | `a3f8...` | Four-word djb2-style hash (teaching model) |
 
 Demo accounts baked into the image:
 
 | Username | Password | Role |
 |----------|----------|------|
-| `root` | `root123` | Administrator |
 | `admin` | `admin123` | Administrator |
-| `doctor1` | `doctor123` | Clinician |
+| `doctor1` | `doctor123` | Doctor |
 | `patient1` | `patient123` | Patient |
 
 ## Login Sequence

@@ -14,7 +14,7 @@ This project is a **teaching model** built on a simplified OS kernel. It does no
 In 2019 the FDA issued a **Class I recall** (its most serious category) for the Medtronic MiniMed 508 insulin pump. Security researchers demonstrated that an attacker within radio range could wirelessly send commands to the pump, altering insulin doses without authentication.
 
 Key facts:
-- **CVE:** CVE-2019-10964
+- **CVE:** [CVE-2019-10964](https://nvd.nist.gov/vuln/detail/CVE-2019-10964)
 - **Device:** Medtronic MiniMed 508 and Paradigm series
 - **Vulnerability:** Cleartext wireless command protocol, no authentication
 - **Consequence:** Potential lethal insulin overdose or underdose
