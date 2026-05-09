@@ -78,8 +78,6 @@ sequenceDiagram
 
 ## Syscall Surface
 
-> **Screenshot placeholder** — QEMU terminal login sequence. Boot xv6, attempt an incorrect password, then log in correctly as `root`. Capture the `Login incorrect` message followed by the shell prompt `$`. Save to `docs/static/img/screenshots/phase1-login-sequence.png`.
-
 ![QEMU terminal showing login failure then successful root login](/img/screenshots/phase1-login-sequence.png)
 
 | Syscall | Who can call | Description |

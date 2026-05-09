@@ -108,8 +108,6 @@ password: root123
 $
 ```
 
-> **Screenshot placeholder** — Boot login prompt. Run `make qemu`, wait for the `login:` prompt, enter credentials, and capture the terminal output. Save to `docs/static/img/screenshots/qemu-boot-login.png`.
-
 ![QEMU terminal showing xv6 boot banner and login prompt](/img/screenshots/qemu-boot-login.png)
 
 ## QEMU Flags Explained

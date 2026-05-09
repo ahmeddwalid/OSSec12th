@@ -84,37 +84,6 @@ T17 is the flagship test. It simulates a realistic attack scenario:
 
 This proves all three phases interlock: Phase 1 provided the UID, Phase 2 denied the access and returned -1, Phase 3 recorded the result.
 
-## Sample Output
-
-```
-COMPLIANCE REPORT: CCY4304 12th Project
-Team: Ahmed Walid Ibrahim (221011183) & Ahmed Mohamed Mahmoud (221010720)
-Lecturer: Prof. Dr. Ayman Adel Abdel-Hamid | TA: Abdelrahman Solyman
-─────────────────────────────────────────────────────────────
-[PASS] T01 valid_admin_login
-[PASS] T02 valid_patient_login
-[PASS] T03 wrong_password_rejected
-[PASS] T04 whoami_returns_username
-[PASS] T05 useradd_by_patient_denied
-[PASS] T06 userdel_by_patient_denied
-[PASS] T07 patient_cannot_open_config
-[PASS] T08 patient_can_read_records
-[PASS] T09 patient_cannot_write_records
-[PASS] T10 doctor_can_write_dosage
-[PASS] T11 doctor_cannot_read_config
-[PASS] T12 admin_can_open_all
-[PASS] T13 patient_cannot_read_audit
-[PASS] T14 admin_can_read_audit
-[PASS] T15 audit_records_denied_open
-[PASS] T16 audit_records_successful_write
-[PASS] T17 end_to_end_attack_detection
-[PASS] T18 all_phases_active
-─────────────────────────────────────────────────────────────
-Passed: 18 / 18   Failed: 0 / 18
-```
-
-> **Screenshot placeholder** — Full compliance run. Boot xv6, log in as `root`, run `compliance_test`. Capture the complete `PASS`/`FAIL` report from T01 through T18, ending with `Passed: 18 / 18`. Save to `docs/static/img/screenshots/compliance-full-pass.png`.
-
 ![QEMU terminal showing compliance_test output: 18/18 PASS](/img/screenshots/compliance-full-pass.png)
 
 ## Running the Tests

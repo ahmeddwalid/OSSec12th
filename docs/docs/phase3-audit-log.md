@@ -116,8 +116,6 @@ PID  UID  SYSCALL       RESULT  TICK  COMM
 
 A `-1` result on `SYS_open` corresponds to a denied access, exactly the kind of evidence Phase 2 + Phase 3 together provide.
 
-> **Screenshot placeholder** — `audit_dump` output. Boot xv6, log in as `root`, run `audit_dump`. Capture the full ring buffer table showing PIDs, UIDs, syscall numbers, results, and ticks. Save to `docs/static/img/screenshots/phase3-audit-dump.png`.
-
 ![QEMU terminal showing audit_dump table with ring buffer entries](/img/screenshots/phase3-audit-dump.png)
 
 ## Compliance Coverage
