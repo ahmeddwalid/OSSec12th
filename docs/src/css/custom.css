@@ -1,23 +1,96 @@
+/* ─── Light mode ─────────────────────────────────────────────── */
 :root {
-  --ifm-color-primary: #176b62;
-  --ifm-color-primary-dark: #145f57;
-  --ifm-color-primary-darker: #11554f;
-  --ifm-color-primary-darkest: #0d403c;
-  --ifm-color-primary-light: #1d7f74;
-  --ifm-color-primary-lighter: #238f82;
-  --ifm-color-primary-lightest: #2aa89a;
-  --ifm-code-font-size: 95%;
+  --ifm-color-primary: #00897b;
+  --ifm-color-primary-dark: #00796b;
+  --ifm-color-primary-darker: #006f62;
+  --ifm-color-primary-darkest: #004d40;
+  --ifm-color-primary-light: #00a896;
+  --ifm-color-primary-lighter: #00b8a4;
+  --ifm-color-primary-lightest: #00d4aa;
+  --ifm-code-font-size: 93%;
+  --ifm-font-family-monospace: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
 }
 
-.hero {
-  background: #0f2f2c;
-  color: #ffffff;
+/* ─── Dark mode ──────────────────────────────────────────────── */
+[data-theme='dark'] {
+  --ifm-color-primary: #00d4aa;
+  --ifm-color-primary-dark: #00be98;
+  --ifm-color-primary-darker: #00b08d;
+  --ifm-color-primary-darkest: #008c71;
+  --ifm-color-primary-light: #1addb4;
+  --ifm-color-primary-lighter: #33e0ba;
+  --ifm-color-primary-lightest: #66e9cb;
+  --ifm-background-color: #0d1117;
+  --ifm-background-surface-color: #161b22;
+  --ifm-navbar-background-color: #0d1117;
+  --ifm-footer-background-color: #020d1a;
+  --ifm-toc-border-color: #30363d;
+  --ifm-color-emphasis-200: #30363d;
+  --ifm-color-emphasis-300: #30363d;
 }
 
-.table-of-contents__link--active {
-  color: var(--ifm-color-primary);
-}
-
+/* ─── Code blocks ────────────────────────────────────────────── */
 code {
   border-radius: 4px;
+  font-family: var(--ifm-font-family-monospace);
 }
+
+pre {
+  border-radius: 8px;
+}
+
+[data-theme='dark'] pre {
+  border: 1px solid #30363d;
+}
+
+/* ─── Navbar ─────────────────────────────────────────────────── */
+[data-theme='dark'] .navbar {
+  border-bottom: 1px solid #21262d;
+  box-shadow: 0 1px 0 0 #21262d;
+}
+
+/* ─── TOC ────────────────────────────────────────────────────── */
+.table-of-contents__link--active {
+  color: var(--ifm-color-primary);
+  font-weight: 600;
+}
+
+/* ─── Admonitions ────────────────────────────────────────────── */
+[data-theme='dark'] .alert {
+  border-left-width: 4px;
+}
+
+/* ─── Mermaid ────────────────────────────────────────────────── */
+.docusaurus-mermaid-container {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+/* ─── Tables ─────────────────────────────────────────────────── */
+[data-theme='dark'] table {
+  border: 1px solid #30363d;
+}
+
+[data-theme='dark'] table th {
+  background: #161b22;
+}
+
+[data-theme='dark'] table tr:nth-child(even) {
+  background: #161b22;
+}
+
+/* ─── Scrollbar (dark) ───────────────────────────────────────── */
+[data-theme='dark'] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}
+

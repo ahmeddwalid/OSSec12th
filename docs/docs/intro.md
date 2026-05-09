@@ -1,32 +1,106 @@
 ---
-slug: /
 sidebar_position: 1
 title: Project Overview
 ---
 
 # Project Overview
 
-## What and Why
+## The Medical-Device Security Problem
 
-This project turns xv6-riscv into a small teaching model for medical-device operating-system security. The original xv6 system boots directly into a shell and trusts every user process equally. That is helpful for learning kernel internals, but it is not acceptable for a device that stores patient records, dosage logs, or configuration data.
+In 2019, Medtronic disclosed that its **MiniMed 508 insulin pump** could be wirelessly commanded by an attacker to deliver a lethal overdose — with no authentication whatsoever. The FDA issued a Class I recall (the most severe level). Root cause: the device OS had no concept of user identity, no file-level access controls, and no audit trail. Any process could do anything.
 
-The project adds three security layers:
+This project answers the question: *what is the minimum OS-level security infrastructure a medical device must have?*
 
-- Phase 1: authentication and account management.
-- Phase 2: Unix-style file permissions on xv6 inodes.
-- Phase 3: syscall audit logging and admin-only audit reads.
+We retrofit **xv6-riscv** — MIT's teaching kernel used in OS courses worldwide — with three security layers that map directly to the controls the FDA's 2023 cybersecurity guidance and IEC 62443 require.
 
-The bonus `compliance_test` program ties the phases together and produces an 18-test report.
+## What xv6 Is
 
-## Theory
+xv6 is an intentionally minimal re-implementation of UNIX v6 in ~10 000 lines of C and RISC-V assembly. It was designed by Robert Morris, Frans Kaashoek, and Russ Cox at MIT to be the simplest possible real kernel — bootable, multi-process, with a file system and a shell. Every line is readable in a day.
 
-Medical-device security starts with basic operating-system isolation. A process should have an identity, files should carry ownership and permission metadata, and security-relevant actions should leave an audit trail. These ideas are common in production Unix systems, but xv6 is intentionally minimal, so each mechanism has to be wired into the kernel directly.
+That minimalism is exactly what makes it the right substrate for this project. Every security hook we add is immediately visible in context. There is no driver jungle, no MM complexity, no hidden abstraction. The kernel is transparent.
 
-This implementation uses simple, inspectable mechanisms:
+## Three Security Phases
 
-- A per-process `uid`, `gid`, role, username, and authenticated flag.
-- File metadata fields for `mode`, `uid`, and `gid`.
-- A fixed-size kernel audit ring buffer protected by a spinlock.
+| Phase | What it adds | Why it matters |
+|-------|-------------|----------------|
+| **1 – Authentication** | Per-process UID/GID/role; boot-time `login` program; `/etc/passwd` credential store | Establishes identity — the foundation of all other controls |
+| **2 – File Permissions** | Unix `rwxrwxrwx` mode bits + owner on every inode; DAC enforcement at 4 kernel hook points | Ensures only the right role (clinician/admin) can touch patient files |
+| **3 – Audit Log** | 256-entry kernel ring buffer; every syscall decision logged with timestamp, UID, result | Provides the non-repudiation trail the FDA requires |
+
+The **bonus `compliance_test`** program runs 18 automated tests and produces a structured pass/fail report that maps each test to a regulatory requirement.
+
+## Architecture
+
+```mermaid
+graph TD
+    A["User Programs<br/>(login, shell, compliance_test)"] --> B["syscall interface (ECALL)"]
+    B --> C["auth_check() – Phase 1"]
+    C --> D["perm_check() – Phase 2"]
+    D --> E["audit_log() – Phase 3"]
+    E --> F["kernel resources<br/>(proc table, file system, audit buffer)"]
+    
+    style A fill:#1e3a5f,color:#e2e8f0
+    style B fill:#1e3a5f,color:#e2e8f0
+    style C fill:#14532d,color:#e2e8f0
+    style D fill:#14532d,color:#e2e8f0
+    style E fill:#14532d,color:#e2e8f0
+    style F fill:#1e1b4b,color:#e2e8f0
+```
+
+## Repository Structure
+
+```
+OSSec12th/
+├── xv6-security/          ← modified kernel
+│   ├── kernel/
+│   │   ├── proc.h         ← uid, gid, role, authenticated added
+│   │   ├── proc.c         ← scheduler and fork changes
+│   │   ├── fs.h           ← dinode mode/uid/gid fields
+│   │   ├── sysfile.c      ← perm_check() hooks
+│   │   ├── audit.c        ← ring buffer + audit_log()
+│   │   ├── audit.h
+│   │   └── trap.c         ← audit printing on exit
+│   ├── user/
+│   │   ├── login.c        ← boot-time authenticator
+│   │   └── compliance_test.c
+│   ├── etc/passwd         ← credential store
+│   └── Makefile
+├── docs/                  ← this Docusaurus site
+├── .github/workflows/     ← CI/CD deploy pipeline
+└── README.md
+```
+
+## Quick Start
+
+```bash
+# 1 – Install toolchain (Fedora)
+sudo dnf install gcc-riscv64-linux-gnu qemu-system-riscv
+
+# 2 – Build and boot
+cd xv6-security
+make qemu
+
+# 3 – Log in as admin
+login: root
+password: root123
+
+# 4 – Run compliance tests
+$ compliance_test
+
+# 5 – Quit QEMU
+Ctrl-A  X
+```
+
+## Team
+
+| Name | Student ID |
+|------|-----------|
+| Ahmed Walid Ibrahim | 221011183 |
+| Ahmed Mohamed Mahmoud | 221010720 |
+
+**Course:** CCY4304 – Operating Systems Security  
+**Lecturer:** Prof. Dr. Ayman Adel Abdel-Hamid  
+**TA:** Abdelrahman Solyman
 
 The goal is not to replace Linux security. The goal is to make each control visible enough for students to trace from syscall to kernel decision to user-visible behavior.
 

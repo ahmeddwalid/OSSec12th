@@ -3,80 +3,130 @@ sidebar_position: 3
 title: Phase 1 Authentication
 ---
 
-# Phase 1 Authentication
+# Phase 1 — Authentication
 
-## What and Why
+## Motivation
 
-Phase 1 adds user identity to xv6. Instead of booting directly into a shell, xv6 starts a secure login program. A user must authenticate before reaching the shell, and the kernel stores that identity in the process table.
+Stock xv6 calls `exec("sh", ...)` in `init.c` and the shell runs immediately with no identity. Any process is implicitly trusted equally. For a medical device this is catastrophic: a patient application could call any syscall, read any file, modify any device configuration.
 
-For a medical device, this is the first control boundary. A patient, clinician, and administrator should not be treated as the same actor.
+Phase 1 imposes an identity boundary at the earliest possible moment — before the first shell command executes.
 
-## Theory
+## What Changed in `struct proc`
 
-Authentication answers two questions:
+Before Phase 1, `struct proc` had no user-identity fields at all. After Phase 1:
 
-- Who is running this process?
-- What role should the kernel assign to that identity?
-
-The implementation stores identity in `struct proc`: `uid`, `gid`, `role`, `username`, and an `authenticated` flag. Forked children inherit credentials, so the shell and programs launched from it keep the logged-in identity.
-
-Passwords are hashed before storage in `/etc/passwd`. The hash is intentionally simple for xv6, but the design keeps plaintext passwords out of the account file. A production system would use a memory-hard password hashing algorithm and proper salt handling.
-
-## Implementation Walk-through
-
-The authentication subsystem lives in `kernel/auth.c` and `kernel/auth.h`. It seeds these demo accounts:
-
-| User | Password | Role |
-| --- | --- | --- |
-| `admin` | `admin123` | administrator |
-| `patient1` | `patient123` | patient |
-| `doctor1` | `doctor123` | clinician |
-
-The user entry point changes in `user/init.c`. It now starts `login` instead of `sh`. The login program prompts for username and password, calls the `login()` syscall, and executes `sh` only after success.
-
-The syscall surface includes:
-
-- `login(username, password)`
-- `useradd(username, password, role)`
-- `userdel(username)`
-- `passwd(username, newpassword)`
-- `whoami(buffer, size)`
-
-Admin-only management is enforced inside the kernel, not only in user tools.
-
-## How to Test
-
-Boot xv6:
-
-```bash
-cd xv6-security
-make qemu-nox
+```c
+/* kernel/proc.h — new fields */
+struct proc {
+  // ... existing fields ...
+  int uid;                   // numeric user ID
+  int gid;                   // numeric group ID
+  int role;                  // ROLE_ADMIN / ROLE_CLINICIAN / ROLE_PATIENT
+  char username[16];         // for audit and whoami
+  int authenticated;         // 0 until login() syscall succeeds
+};
 ```
 
-Try a valid login:
+Forked children inherit all five fields, so every descendant of a logged-in shell carries the same identity.
 
-```text
-Username: admin
-Password: admin123
+## The `/etc/passwd` Format
+
+```
+username:hashed_password:uid:gid:role
 ```
 
-Inside xv6, run:
+| Field | Example | Notes |
+|-------|---------|-------|
+| `username` | `root` | Max 15 chars |
+| `hashed_password` | `a3f8...` | Simple XOR+sum hash (teaching model) |
+| `uid` | `0` | 0 = admin |
+| `gid` | `0` | group ID |
+| `role` | `0` | 0=admin, 1=clinician, 2=patient |
 
-```sh
-whoami
+Demo accounts baked into the image:
+
+| Username | Password | Role |
+|----------|----------|------|
+| `root` | `root123` | Administrator |
+| `admin` | `admin123` | Administrator |
+| `doctor1` | `doctor123` | Clinician |
+| `patient1` | `patient123` | Patient |
+
+## Login Sequence
+
+```mermaid
+sequenceDiagram
+    participant QEMU as QEMU console
+    participant login as login (user program)
+    participant kernel as kernel / auth.c
+    participant shell as sh
+
+    QEMU->>login: exec("/login")
+    login->>QEMU: prompt "login: "
+    QEMU->>login: username + password
+    login->>kernel: login(username, password) ECALL
+    kernel->>kernel: read /etc/passwd, hash password
+    alt credentials valid
+        kernel->>login: return 0 (success)
+        kernel-->>kernel: set proc.uid, gid, role, authenticated=1
+        login->>shell: exec("/sh")
+    else wrong password
+        kernel->>login: return -1
+        login->>QEMU: "Login incorrect" + retry
+    end
 ```
 
-Then run the compliance checks that cover authentication:
+## Syscall Surface
 
-```sh
-compliance_test
+| Syscall | Who can call | Description |
+|---------|-------------|-------------|
+| `login(user, pass)` | Anyone | Authenticate; sets kernel identity |
+| `whoami(buf, len)` | Anyone | Copy current `username` to user buffer |
+| `useradd(user, pass, role)` | Admin only | Create account entry in `/etc/passwd` |
+| `userdel(user)` | Admin only | Remove account entry |
+| `passwd(user, newpass)` | Admin only | Change password |
+
+The admin-only restriction is enforced **inside the kernel** (`kernel/auth.c`), not just in the user tool. A patient cannot call `useradd` by constructing a raw ECALL.
+
+## `login.c` Walk-through
+
+```c
+// user/login.c (simplified)
+int main(void) {
+  char user[16], pass[32];
+  for (;;) {
+    printf("login: ");   read_line(user, sizeof user);
+    printf("password: "); read_line(pass, sizeof pass);
+
+    int r = login(user, pass);   // ECALL → sys_login()
+    if (r == 0) {
+      char *argv[] = { "sh", 0 };
+      exec("/sh", argv);
+      // exec only returns on failure
+    }
+    printf("Login incorrect\n\n");
+  }
+}
 ```
 
-Tests T01 through T06 cover valid logins, wrong password rejection, non-admin account management denial, and `whoami` output.
+`exec` overwrites the login process image with the shell. The kernel's `proc` entry keeps `uid`, `gid`, `role`, and `authenticated = 1` across the `exec` because credentials are stored in `struct proc`, not in the user-space image.
 
-## Common Pitfalls
+## Compliance Coverage
 
-Do not rely on user-space tools alone for authorization. A user can bypass a friendly command wrapper by calling a syscall directly. The kernel must enforce admin-only account operations.
+| Test | What it checks |
+|------|---------------|
+| T01 | Valid admin login succeeds |
+| T02 | Valid patient login succeeds |
+| T03 | Wrong password is rejected |
+| T04 | `whoami` returns the correct username |
+| T05 | `useradd` by non-admin returns `-EPERM` |
+| T06 | `userdel` by non-admin returns `-EPERM` |
+
+## Security Notes
+
+- The hash in this teaching implementation is a simple XOR+sum over the password bytes. **This is not production-quality.** A real system would use Argon2id or bcrypt with a per-account salt.
+- Authenticated flag is reset to 0 on `fork` **before** exec (so a child cannot inherit a logged-in session without going through login again if the parent exits without passing the shell). The current design inherits credentials so the shell and child processes share the parent's identity — appropriate for a single-user session model.
+
 
 Remember to copy credentials on fork. If the child shell loses identity, later permission checks and audit entries become misleading.
 

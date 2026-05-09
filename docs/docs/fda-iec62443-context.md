@@ -1,65 +1,102 @@
 ---
 sidebar_position: 7
-title: FDA and IEC 62443 Context
+title: FDA & IEC 62443 Context
 ---
 
-# FDA and IEC 62443 Context
+# Regulatory Context — FDA & IEC 62443
 
-## What and Why
+:::warning Disclaimer
+This project is a **teaching model** built on a simplified OS kernel. It does not claim compliance with any regulatory standard. The mappings below are educational illustrations of how real-world security requirements relate to the implementation concepts used here.
+:::
 
-The project is a teaching model, but its controls map to real medical-device and industrial-control security ideas. FDA cybersecurity guidance and IEC 62443 both emphasize controlled access, least privilege, traceability, and secure maintenance.
+## The Medtronic MiniMed 508 Story
 
-The xv6 implementation is intentionally small, but it demonstrates the operating-system foundations behind those expectations.
+In 2019 the FDA issued a **Class I recall** — its most serious category — for the Medtronic MiniMed 508 insulin pump. Security researchers demonstrated that an attacker within radio range could wirelessly send commands to the pump, altering insulin doses without authentication.
 
-## Theory
+Key facts:
+- **CVE:** CVE-2019-10964
+- **Device:** Medtronic MiniMed 508 and Paradigm series
+- **Vulnerability:** Cleartext wireless command protocol, no authentication
+- **Consequence:** Potential lethal insulin overdose or underdose
+- **FDA action:** Class I recall (risk of serious injury or death)
+- **Affected units:** ~4,000 devices in active use
 
-Medical devices are safety-relevant systems. Security controls should reduce the chance that a user, process, or attacker can change therapy data, alter configuration, or hide activity.
+This incident drove two regulatory developments that shape modern medical-device cybersecurity:
 
-IEC 62443 uses concepts such as zones, conduits, least privilege, auditability, and role-based access. FDA medical-device cybersecurity guidance emphasizes secure design, authentication, authorization, logging, update planning, and vulnerability management across the device lifecycle.
+1. **FDA 2023 Cybersecurity Guidance** — pre-market requirements for new devices
+2. Renewed emphasis on **IEC 62443** as the referenced industrial security standard
 
-## Implementation Walk-through
+## IEC 62443 at a Glance
 
-This project maps the controls as follows:
+IEC 62443 is the international standard for **Industrial Automation and Control System (IACS) cybersecurity**. Medical devices fall under its scope when they communicate with external systems or are embedded in clinical infrastructure.
 
-| Project Feature | Security Meaning | Standards Context |
-| --- | --- | --- |
-| Secure login | User identification and authentication | Access control and accountable use |
-| Roles and uid/gid | Least privilege | Role-based permissions |
-| File modes | Data and configuration protection | Authorization and separation of duties |
-| Protected medical files | Realistic assets | Patient safety and device integrity |
-| Audit ring | Traceability | Logging, monitoring, forensic support |
-| Compliance test | Repeatable evidence | Verification and validation |
+### Key Concepts
 
-The design is intentionally transparent. Students can inspect how a syscall moves from user code into the kernel and how the kernel makes a security decision.
+**Security Zones and Conduits**
+A zone is a logical grouping of assets that share the same security policy. A conduit is a communication path between zones. The standard requires that zone boundaries be enforced and that conduits be protected (authenticated, encrypted).
 
-## How to Test
+*In this project:* the kernel privilege boundary between `uid=0` (admin zone) and `uid>0` (patient/clinician zone) maps to the zone concept. The ECALL interface is the conduit — authenticated by the `proc->authenticated` flag and the `uid` check.
 
-Use the compliance report as evidence of the implemented controls:
+**Security Levels (SL 1–4)**
+- SL 1: Protection against unintentional misuse
+- SL 2: Protection against intentional violation using simple means
+- SL 3: Protection against intentional violation using sophisticated means
+- SL 4: Protection against state-level attacks
 
-```sh
-compliance_test
-```
+*In this project:* the implementation targets SL 1–2: it prevents accidental and simple intentional misuse, but is not hardened against sophisticated adversaries.
 
-Then run:
+**Least Privilege**
+Each process and user should operate with the minimum privilege needed for its function.
 
-```sh
-audit_dump
-```
+*In this project:* A patient process cannot call `useradd`, read `/device/config`, or read the audit ring — enforced kernel-side.
 
-The audit output demonstrates that the system records attempted and completed operations with uid and syscall result data.
+**Auditability**
+The system must record security-relevant events so that incidents can be reconstructed.
 
-For documentation evidence, build the site:
+*In this project:* Phase 3 ring buffer + trap audit printing.
 
-```bash
-cd docs
-npm install
-npm run build
-```
+## FDA 2023 Cybersecurity Guidance
 
-## Common Pitfalls
+The FDA's 2023 guidance document *"Cybersecurity in Medical Devices: Quality System Considerations and Content of Premarket Submissions"* lists these pre-market requirements:
 
-Do not claim this xv6 project is a certified medical-device operating system. It is a teaching implementation that models security ideas in a minimal kernel.
+| FDA Requirement | Description |
+|-----------------|-------------|
+| Identify and protect | Identify cybersecurity risks and implement protections |
+| Authentication | Authentication for privileged access to device functions |
+| Authorization | Role-based access control to device resources |
+| Cryptographic integrity | Verify software integrity at load and update time |
+| Audit logging | Maintain logs of security-relevant events |
+| Updateability | Support security patches without unsafe downtime |
+| Coordinated disclosure | Maintain a SBOM and a vulnerability disclosure policy |
 
-Do not confuse authentication with authorization. Login identifies the user, but file permissions and syscall authorization decide what that user can do.
+## Requirements Mapping Table
 
-Do not treat audit logs as prevention. Audit data helps detection and investigation; it must be paired with access control and secure defaults.
+| Regulatory Requirement | IEC 62443 Clause | xv6 Implementation |
+|-----------------------|-----------------|-------------------|
+| User authentication before access | IAC, SR 1.1 | Phase 1 — `sys_login`, `/etc/passwd`, `proc->authenticated` |
+| Role-based access control | SR 2.1 | Phase 1 — `proc->role` (admin/clinician/patient) |
+| Least-privilege file access | SR 2.1, SR 2.2 | Phase 2 — inode `mode`/`uid`/`gid`, `perm_check()` |
+| Audit logging of security events | SR 2.8 | Phase 3 — ring buffer, `audit_log()`, trap print |
+| Audit accessible only to authorised users | SR 2.8, SR 2.9 | Phase 3 — `audit_read` returns `EPERM` for non-admin |
+| Device configuration protected | SR 2.1 | `/device/config` mode `0600`, owner uid=0 |
+
+## Glossary
+
+| Term | Meaning |
+|------|---------|
+| **UID** | User ID — a numeric identity assigned to an OS user. UID 0 is the superuser. |
+| **GID** | Group ID — a numeric identity for a group of users sharing permissions. |
+| **DAC** | Discretionary Access Control — permissions controlled by resource owners (Unix mode bits). |
+| **MAC** | Mandatory Access Control — system-wide policy overrides owner preferences (SELinux, etc.). |
+| **Audit trail** | A chronological record of security-relevant events for forensic reconstruction. |
+| **Ring buffer** | A fixed-size circular array; oldest entries are overwritten when full. |
+| **ECALL** | RISC-V instruction that transfers control from user mode to the OS kernel. |
+| **RISC-V** | Reduced Instruction Set Computer — V; an open ISA used as xv6's target architecture. |
+| **SMP** | Symmetric Multi-Processing — multiple CPU harts sharing memory. |
+| **virtio** | A paravirtualized I/O standard used by QEMU for disk and network. |
+| **IEC 62443** | International standard for industrial and embedded system cybersecurity. |
+| **FDA guidance** | Non-binding but expected recommendations from the U.S. Food & Drug Administration. |
+| **Class I recall** | FDA's most serious recall class — risk of serious injury or death. |
+| **SL** | Security Level (IEC 62443) — scale 1–4 of adversary sophistication targeted. |
+| **SBOM** | Software Bill of Materials — inventory of all software components in a device. |
+| **EPERM** | POSIX error code — Operation not permitted. Returned for unauthorized syscalls. |

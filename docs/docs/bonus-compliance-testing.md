@@ -3,82 +3,135 @@ sidebar_position: 6
 title: Bonus Compliance Testing
 ---
 
-# Bonus Compliance Testing
+# Bonus — Compliance Testing
 
-## What and Why
+## Purpose
 
-The bonus `compliance_test` program is an automated report that exercises all three project phases. It is designed for quick grading and quick regression checks after kernel changes.
+The `compliance_test` program is an automated end-to-end test suite that exercises all three security phases in a single run. It was designed for three audiences:
 
-The test runs inside xv6, switches identities with the login syscall, performs allowed and denied operations, reads audit data as admin, and prints a final report.
+1. **Graders** — produces a structured `PASS / FAIL` report with student identity
+2. **Developers** — catches regressions after kernel changes
+3. **Auditors** — maps each test to a security requirement
 
-## Theory
+## How Tests Work
 
-A good compliance test should check behavior, not just code presence. For this project that means testing the end-to-end syscall path:
+Each test follows this pattern:
 
-- Authentication should accept valid credentials and reject invalid credentials.
-- Permission checks should deny sensitive files to the wrong role.
-- Audit logs should record both denied and successful security-relevant events.
-- The phases should still work together in one booted system.
+```c
+static void assert_pass(const char *name, int cond) {
+  passes += cond;
+  fails  += !cond;
+  printf("[%s] %s\n", cond ? "PASS" : "FAIL", name);
+}
 
-Because xv6 has a small user library, the test avoids host-style conveniences and uses only xv6-supported calls.
-
-## Implementation Walk-through
-
-The source file is `user/compliance_test.c`. It uses small helpers for open/read/write checks and an in-memory array of `struct audit_entry` values.
-
-The Makefile includes the program in `UPROGS`:
-
-```make
-$U/_compliance_test\
+static void assert_fail(const char *name, int cond) {
+  assert_pass(name, !cond);   // we expect the operation to be denied
+}
 ```
 
-The test suite contains 18 high-level checks:
+`assert_fail` is used for "this must be rejected" tests. If the kernel incorrectly allows the operation, the test reports `FAIL`.
 
-| Range | Coverage |
-| --- | --- |
-| T01-T06 | login, wrong-password rejection, admin-only account operations, whoami |
-| T07-T12 | protected medical files and admin override |
-| T13-T17 | admin-only audit reads and audit evidence |
-| T18 | all phases active together |
+## The 18 Tests
 
-The final report includes the student name and ID and should show `Passed: 18 / 18`.
+### Phase 1 — Authentication (T01–T06)
 
-## How to Test
+| ID | Test name | Description |
+|----|-----------|-------------|
+| T01 | `valid_admin_login` | `login("root","root123")` → 0 |
+| T02 | `valid_patient_login` | `login("patient1","patient123")` → 0 |
+| T03 | `wrong_password_rejected` | `login("root","wrong")` → -1 |
+| T04 | `whoami_returns_username` | `whoami(buf,16)` returns "patient1" |
+| T05 | `useradd_by_patient_denied` | `useradd(...)` as patient → -1 |
+| T06 | `userdel_by_patient_denied` | `userdel(...)` as patient → -1 |
 
-Build and boot:
+### Phase 2 — File Permissions (T07–T12)
+
+| ID | Test name | Description |
+|----|-----------|-------------|
+| T07 | `patient_cannot_open_config` | `open("/device/config", O_RDONLY)` as patient → -1 |
+| T08 | `patient_can_read_records` | `open("/patient/records", O_RDONLY)` as patient → fd ≥ 0 |
+| T09 | `patient_cannot_write_records` | `open("/patient/records", O_WRONLY)` as patient → -1 |
+| T10 | `doctor_can_write_dosage` | `open("/dosage/insulin.log", O_WRONLY)` as doctor → fd ≥ 0 |
+| T11 | `doctor_cannot_read_config` | `open("/device/config", O_RDONLY)` as doctor → -1 |
+| T12 | `admin_can_open_all` | Admin opens `/device/config`, `/audit/syscall.log` → success |
+
+### Phase 3 — Audit Log (T13–T17)
+
+| ID | Test name | Description |
+|----|-----------|-------------|
+| T13 | `patient_cannot_read_audit` | `audit_read(buf, n)` as patient → -1 |
+| T14 | `admin_can_read_audit` | `audit_read(buf, n)` as admin → entries returned |
+| T15 | `audit_records_denied_open` | T07 denial appears in audit ring |
+| T16 | `audit_records_successful_write` | T10 success appears in audit ring |
+| T17 | `end_to_end_attack_detection` | Login→deny→audit confirms the attacker attempt |
+
+### Integration (T18)
+
+| ID | Test name | Description |
+|----|-----------|-------------|
+| T18 | `all_phases_active` | Re-verify auth + permission + audit all active simultaneously |
+
+## T17 End-to-End Narrative
+
+T17 is the flagship test. It simulates a realistic attack scenario:
+
+1. **Authenticate as patient** (`login("patient1","patient123")`)
+2. **Attempt unauthorized access** (`open("/device/config", O_RDONLY)` → denied)
+3. **Switch to admin** (`login("root","root123")`)
+4. **Read audit ring** (`audit_read(buf, sizeof buf)`)
+5. **Search ring for the denial** — find an entry with `syscall_no == SYS_open`, `uid == <patient_uid>`, `result == -1`
+6. **Assert found** — if the entry exists, T17 `PASS`
+
+This proves all three phases interlock: Phase 1 provided the UID, Phase 2 denied the access and returned -1, Phase 3 recorded the result.
+
+## Sample Output
+
+```
+COMPLIANCE REPORT — CCY4304 12th Project
+Team: Ahmed Walid Ibrahim (221011183) & Ahmed Mohamed Mahmoud (221010720)
+Lecturer: Prof. Dr. Ayman Adel Abdel-Hamid | TA: Abdelrahman Solyman
+─────────────────────────────────────────────────────────────
+[PASS] T01 valid_admin_login
+[PASS] T02 valid_patient_login
+[PASS] T03 wrong_password_rejected
+[PASS] T04 whoami_returns_username
+[PASS] T05 useradd_by_patient_denied
+[PASS] T06 userdel_by_patient_denied
+[PASS] T07 patient_cannot_open_config
+[PASS] T08 patient_can_read_records
+[PASS] T09 patient_cannot_write_records
+[PASS] T10 doctor_can_write_dosage
+[PASS] T11 doctor_cannot_read_config
+[PASS] T12 admin_can_open_all
+[PASS] T13 patient_cannot_read_audit
+[PASS] T14 admin_can_read_audit
+[PASS] T15 audit_records_denied_open
+[PASS] T16 audit_records_successful_write
+[PASS] T17 end_to_end_attack_detection
+[PASS] T18 all_phases_active
+─────────────────────────────────────────────────────────────
+Passed: 18 / 18   Failed: 0 / 18
+```
+
+## Running the Tests
 
 ```bash
+# Build and boot
 cd xv6-security
-make clean
-make
-make qemu-nox
+make clean && make
+make qemu
+
+# At the login prompt
+login: root
+password: root123
+
+# Run the suite
+$ compliance_test
 ```
 
-Log in as admin:
+## Known Implementation Details
 
-```text
-Username: admin
-Password: admin123
-```
+- **`DIRSIZ 16`** — The filename `compliance_test` is 16 characters, requiring `DIRSIZ` increased from 14 to 16 in `kernel/fs.h`. `mkfs.c` padding was updated accordingly.
+- **Audit ring ordering** — T15/T16 search backward from the newest entry. The ring may contain stale entries from earlier test phases; the search uses `uid` + `result` as a compound key.
+- **No libc** — xv6 user programs have no C standard library. The test uses `memcmp` for string comparison and manual `itoa` for number formatting.
 
-Run:
-
-```sh
-compliance_test
-```
-
-Expected final output:
-
-```text
-COMPLIANCE REPORT - CCY4304 12th Project
-Student: Ahmed Walid - 221011183
-Passed: 18 / 18
-```
-
-## Common Pitfalls
-
-The audit ring can fill quickly because trap audit printing itself triggers write syscalls. The compliance test creates fresh audit events near the checks that need them, which keeps the result deterministic.
-
-Do not use C library functions that xv6 does not declare. The test uses `memcmp` for substring checks instead of relying on a host libc routine.
-
-The filename `compliance_test` required increasing `DIRSIZ` from 14 to 16. That filesystem change must be paired with mkfs layout fixes.

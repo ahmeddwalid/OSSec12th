@@ -1,0 +1,389 @@
+/* ─── Hero ─────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, #020d1a 0%, #041c2c 40%, #061a2a 70%, #071e30 100%);
+  padding: 5rem 1rem 4rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(0, 212, 170, 0.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.heroInner {
+  max-width: 860px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+}
+
+.badge {
+  display: inline-block;
+  background: rgba(0, 212, 170, 0.15);
+  border: 1px solid rgba(0, 212, 170, 0.4);
+  color: #00d4aa;
+  border-radius: 100px;
+  padding: 0.25rem 1rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.heroTitle {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  color: #f0f9ff;
+  line-height: 1.15;
+  margin-bottom: 1.25rem;
+  letter-spacing: -0.02em;
+}
+
+.heroSubtitle {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  max-width: 640px;
+  margin: 0 auto 2rem;
+  line-height: 1.7;
+}
+
+.heroButtons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 2.5rem;
+}
+
+.ctaPrimary {
+  background: linear-gradient(135deg, #00b894, #00d4aa) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  font-weight: 700;
+  box-shadow: 0 4px 24px rgba(0, 212, 170, 0.35);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.ctaPrimary:hover {
+  box-shadow: 0 6px 32px rgba(0, 212, 170, 0.55);
+  transform: translateY(-1px);
+}
+
+.ctaSecondary {
+  border-color: rgba(0, 212, 170, 0.5) !important;
+  color: #00d4aa !important;
+}
+
+.statsRow {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.statChip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.statValue {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #00d4aa;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  letter-spacing: 0.03em;
+}
+
+/* ─── Shared section ────────────────────────────────────────── */
+.section {
+  padding: 4rem 1rem;
+}
+
+.sectionAlt {
+  background: var(--ifm-background-surface-color);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+.sectionSubtitle {
+  color: var(--ifm-color-content-secondary);
+  margin-bottom: 2.5rem;
+  font-size: 1.05rem;
+}
+
+.centered {
+  text-align: center;
+}
+
+/* ─── Two-column layout ─────────────────────────────────────── */
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
+}
+
+.xv6Box {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 1.75rem;
+}
+
+.xv6Box h3 {
+  margin-top: 0;
+  color: #00d4aa;
+}
+
+/* ─── Phase cards ───────────────────────────────────────────── */
+.phaseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.phaseCard {
+  background: var(--ifm-card-background-color, var(--ifm-background-color));
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 16px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.phaseCard:hover {
+  border-color: #00d4aa;
+  box-shadow: 0 0 0 1px #00d4aa, 0 4px 20px rgba(0, 212, 170, 0.15);
+}
+
+.phaseIcon {
+  font-size: 2rem;
+}
+
+.phaseTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.phaseDesc {
+  font-size: 0.9rem;
+  color: var(--ifm-color-content-secondary);
+  margin: 0;
+  flex: 1;
+}
+
+.codeSnippet {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  overflow-x: auto;
+  color: #e6edf3;
+  margin: 0;
+}
+
+/* ─── Architecture diagram ──────────────────────────────────── */
+.archDiagram {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.archLayer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-left: 4px solid;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+}
+
+.archLayerNum {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--ifm-color-content);
+  min-width: 1.5rem;
+}
+
+.archLayerLabel {
+  font-size: 0.85rem;
+  font-family: var(--ifm-font-family-monospace);
+  color: var(--ifm-color-content);
+}
+
+.archArrow {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ifm-color-content-secondary);
+  margin-top: 0.5rem;
+  letter-spacing: 0.03em;
+}
+
+/* ─── Terminal ──────────────────────────────────────────────── */
+.terminal {
+  max-width: 720px;
+  margin: 0 auto 2rem;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid #30363d;
+}
+
+.terminalBar {
+  background: #1c1c1e;
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.termDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.terminalTitle {
+  font-size: 0.75rem;
+  color: #8a8a8e;
+  margin-left: 0.5rem;
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.terminalBody {
+  background: #0d1117;
+  padding: 1.25rem 1.5rem;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.8;
+  color: #c9d1d9;
+  font-family: var(--ifm-font-family-monospace);
+  overflow-x: auto;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.passLine {
+  color: #3fb950;
+}
+
+.normalLine {
+  color: #c9d1d9;
+}
+
+.centeredBtn {
+  display: flex;
+  justify-content: center;
+}
+
+/* ─── Team ──────────────────────────────────────────────────── */
+.teamGrid {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.teamCard {
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  text-align: center;
+  min-width: 220px;
+}
+
+.teamAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00b894, #00d4aa);
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
+}
+
+.teamName {
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.teamId {
+  font-size: 0.8rem;
+  color: var(--ifm-color-content-secondary);
+  font-family: var(--ifm-font-family-monospace);
+}
+
+.courseInfo {
+  text-align: center;
+  color: var(--ifm-color-content-secondary);
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
+.courseInfo p {
+  margin: 0.15rem 0;
+}
+
+/* ─── Footer CTA ────────────────────────────────────────────── */
+.footerCTA {
+  background: linear-gradient(135deg, #020d1a, #041c2c);
+  padding: 4rem 1rem;
+  text-align: center;
+}
+
+.footerCTA h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #f0f9ff;
+  margin-bottom: 0.5rem;
+}
+
+.footerCTA p {
+  color: #94a3b8;
+  margin-bottom: 2rem;
+}

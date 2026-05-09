@@ -3,75 +3,132 @@ sidebar_position: 5
 title: Phase 3 Audit Log
 ---
 
-# Phase 3 Audit Log
+# Phase 3 — Audit Log
 
-## What and Why
+## Motivation
 
-Phase 3 records syscall activity in the kernel. Each audit entry stores process id, uid, syscall number, result, tick count, and command name. Admin users can read the audit ring with `audit_read()` and inspect it with `audit_dump`.
+Authentication and file permissions control *what can happen*. But after a security incident, investigators need to know *what did happen*, *when*, and *who triggered it*. Without an audit trail:
 
-Medical-device systems need auditability because access decisions are not enough by themselves. Investigators also need to know what was attempted, what failed, and which identity was involved.
+- A clinician could claim they never wrote a dosage file.
+- An intrusion could go undetected indefinitely.
+- Regulatory review would have no evidence to examine.
 
-## Theory
+Phase 3 adds a kernel-resident audit ring buffer that records every security-relevant syscall event.
 
-The audit log is a fixed-size ring buffer. A ring is simple, bounded, and appropriate for xv6 because it avoids dynamic allocation in syscall paths. When the buffer fills, new events replace the oldest events.
+## Design: Ring Buffer
 
-The buffer is protected by a spinlock so concurrent harts cannot corrupt the head, tail, or entry data. `audit_read()` is admin-only because the log can reveal sensitive behavior.
+A ring buffer is the right structure for kernel-space audit logging because:
 
-## Implementation Walk-through
+1. **Bounded memory** — No dynamic allocation in syscall paths.
+2. **O(1) write** — Head and tail pointer arithmetic only.
+3. **Graceful overwrite** — Oldest events are silently dropped when full, keeping the system live.
 
-The kernel initializes the audit subsystem during boot. The syscall dispatcher records each syscall result after the handler returns.
+```
+Ring buffer — 256 slots, each is struct audit_entry
 
-Each entry includes:
+head ───▶ [entry 0] [entry 1] ... [entry N] ──▶ tail wraps
+           oldest                              newest
+```
+
+The buffer is protected by a `spinlock_t` so concurrent harts cannot corrupt the shared head/tail pointers.
+
+## `struct audit_entry`
 
 ```c
+/* kernel/audit.h */
 struct audit_entry {
-  int pid;
-  int uid;
-  int syscall_no;
-  int result;
-  uint tick;
-  char comm[16];
+  int  pid;           // process ID of caller
+  int  uid;           // user ID of caller (from proc->uid)
+  int  syscall_no;    // SYS_open, SYS_write, SYS_login, ...
+  int  result;        // return value of the syscall
+  uint tick;          // kernel tick count (for ordering)
+  char comm[16];      // first 15 chars of p->name
 };
+
+#define AUDIT_RING_SIZE 256
 ```
 
-The trap handler also prints a human-readable audit line for syscall traps:
+## `audit_log()` Implementation
 
-```text
-[AUDIT] PID=<pid> UID=<uid> TRAP=Environment call (syscall) EPC=0x...
+Called at the end of every syscall handler (before returning to user space):
+
+```c
+// kernel/audit.c
+void audit_log(int syscall_no, int result) {
+  struct proc *p = myproc();
+
+  acquire(&audit_lock);
+  struct audit_entry *e = &ring[tail % AUDIT_RING_SIZE];
+  e->pid        = p->pid;
+  e->uid        = p->uid;
+  e->syscall_no = syscall_no;
+  e->result     = result;
+  e->tick       = ticks;
+  memmove(e->comm, p->name, sizeof e->comm);
+  tail++;
+  if (tail - head > AUDIT_RING_SIZE) head++;  // overwrite oldest
+  release(&audit_lock);
+}
 ```
 
-The admin tool `audit_dump` reads the ring and prints a table with syscall names and return values.
+## Trap-Level Audit Printing
 
-`audit_read()` returns the newest entries that fit the caller's buffer. That makes small readers useful even when the ring contains more events than their local buffer.
+`kernel/trap.c` prints a one-line audit record for every syscall trap:
 
-## How to Test
+```
+[AUDIT] PID=3 UID=0 TRAP=Environment call (syscall) EPC=0x000000008000abcd
+```
 
-Log in as `patient1` and try to read audit data:
+This provides a real-time stream that QEMU captures in its terminal output, independent of the ring buffer.
+
+:::tip
+The trap audit lines are very noisy — one per syscall, and `printf` itself triggers write syscalls. During compliance testing, focus on the ring buffer output from `audit_dump`, not the raw trap lines.
+:::
+
+## `audit_read` — Admin-Only Access
+
+```c
+// kernel/sysproc.c
+int sys_audit_read(void) {
+  struct proc *p = myproc();
+  if (p->uid != 0)              // not admin
+    return -1;                  // EPERM
+
+  // copy ring entries to user buffer ...
+}
+```
+
+Non-admin callers receive `-1` immediately. The kernel does not reveal even the buffer size to unprivileged processes.
+
+## `audit_dump` Tool
+
+Inside xv6, the admin can run:
 
 ```sh
-audit_dump
+$ audit_dump
+PID  UID  SYSCALL       RESULT  TICK  COMM
+---  ---  -------       ------  ----  ----
+3    0    SYS_login     0       12    login
+4    0    SYS_open      3       45    sh
+4    2    SYS_open      -1      67    compliance
+4    0    SYS_audit_r   0       89    compliance
 ```
 
-The request should be denied for non-admin users.
+A `-1` result on `SYS_open` corresponds to a denied access — exactly the kind of evidence Phase 2 + Phase 3 together provide.
 
-Log in as admin and run:
+## Compliance Coverage
 
-```sh
-audit_dump
-```
+| Test | What it checks |
+|------|---------------|
+| T13 | `audit_read` by non-admin returns `-EPERM` |
+| T14 | `audit_read` by admin succeeds and returns entries |
+| T15 | A denied open (from T07) appears in the audit log |
+| T16 | A successful write (from T10) appears in the audit log |
+| T17 | Full end-to-end: login → denied open → audit confirms the denial |
 
-You should see syscall records. Then run:
+## Security Notes
 
-```sh
-compliance_test
-```
+- Audit records are in-kernel only. A patient process cannot reach the buffer.
+- The ring is **volatile** — it does not survive a reboot. A production system would flush to persistent storage.
+- Audit should be paired with access control, not treated as a substitute for it. Logging a denial is useful; *preventing* the action is essential.
 
-Tests T13 through T17 verify admin-only audit reads, audit data availability, denied-open detection, successful-write detection, and attack detection.
-
-## Common Pitfalls
-
-The required trap audit print is very noisy because xv6 console output often writes one byte per syscall. When reviewing QEMU logs, strip lines that begin with `[AUDIT]` before reading compliance output.
-
-Do not expose audit logs to normal users. A patient process should not be able to learn system activity by reading the ring.
-
-Avoid unbounded audit storage in the kernel. A fixed-size ring keeps memory use predictable.
