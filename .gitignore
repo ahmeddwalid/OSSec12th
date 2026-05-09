@@ -1,3 +1,38 @@
+# ─── Docusaurus ───────────────────────────────────────────────────────────────
 docs/node_modules/
 docs/build/
 docs/.docusaurus/
+docs/.cache-loader/
+
+# ─── xv6 build artifacts ──────────────────────────────────────────────────────
+xv6-security/kernel/kernel
+xv6-security/fs.img
+xv6-security/mkfs/mkfs
+xv6-security/**/*.o
+xv6-security/**/*.d
+xv6-security/**/*.asm
+xv6-security/**/*.sym
+xv6-security/user/usys.S
+xv6-security/.gdbinit
+
+# ─── Editor & OS ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# ─── QEMU / GDB session files ─────────────────────────────────────────────────
+.gdbinit
+*.log
+
+# ─── LaTeX (if docs are ever compiled locally) ────────────────────────────────
+*.tex
+*.dvi
+*.idx
+*.aux
+*.ind
+*.ilg
+
