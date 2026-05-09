@@ -11,27 +11,6 @@ uint ticks;
 
 extern char trampoline[], uservec[];
 
-static char*
-trap_name(uint64 scause)
-{
-  static char *trap_names[] = {
-    [0]  "Instruction address misaligned",
-    [1]  "Instruction access fault",
-    [2]  "Illegal instruction",
-    [3]  "Breakpoint",
-    [5]  "Load access fault",
-    [7]  "Store/AMO access fault",
-    [8]  "Environment call (syscall)",
-    [12] "Instruction page fault",
-    [13] "Load page fault",
-    [15] "Store/AMO page fault",
-  };
-
-  if(scause < NELEM(trap_names) && trap_names[scause])
-    return trap_names[scause];
-  return "Unknown trap";
-}
-
 // in kernelvec.S, calls kerneltrap().
 void kernelvec();
 
@@ -77,9 +56,6 @@ usertrap(void)
 
     if(killed(p))
       kexit(-1);
-
-    printf("[AUDIT] PID=%d UID=%d TRAP=%s EPC=0x%lx\n",
-           p->pid, p->uid, trap_name(r_scause()), r_sepc());
 
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
