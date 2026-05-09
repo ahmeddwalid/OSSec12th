@@ -37,9 +37,9 @@ static void assert_fail(const char *name, int cond) {
 
 | ID | Test name | Description |
 |----|-----------|-------------|
-| T01 | `valid_admin_login` | `login("root","root123")` → 0 |
+| T01 | `valid_admin_login` | `login("admin","admin123")` → 0 |
 | T02 | `valid_patient_login` | `login("patient1","patient123")` → 0 |
-| T03 | `wrong_password_rejected` | `login("root","wrong")` → -1 |
+| T03 | `wrong_password_rejected` | `login("admin","wrong")` → -1 |
 | T04 | `whoami_returns_username` | `whoami(buf,16)` returns "patient1" |
 | T05 | `useradd_by_patient_denied` | `useradd(...)` as patient → -1 |
 | T06 | `userdel_by_patient_denied` | `userdel(...)` as patient → -1 |
@@ -77,7 +77,7 @@ T17 is the flagship test. It simulates a realistic attack scenario:
 
 1. **Authenticate as patient** (`login("patient1","patient123")`)
 2. **Attempt unauthorized access** (`open("/device/config", O_RDONLY)` → denied)
-3. **Switch to admin** (`login("root","root123")`)
+3. **Switch to admin** (`login("admin","admin123")`)
 4. **Read audit ring** (`audit_read(buf, sizeof buf)`)
 5. **Search ring for the denial**: find an entry with `syscall_no == SYS_open`, `uid == <patient_uid>`, `result == -1`
 6. **Assert found**: if the entry exists, T17 `PASS`
@@ -95,8 +95,8 @@ make clean && make
 make qemu
 
 # At the login prompt
-login: root
-password: root123
+login: admin
+password: admin123
 
 # Run the suite
 $ compliance_test

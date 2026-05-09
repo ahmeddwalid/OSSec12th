@@ -55,8 +55,8 @@ The in-memory `struct inode` mirrors these fields. `ialloc`, `iupdate`, `ilock`,
 
 | Path | Mode | Owner | Accessible by |
 |------|------|-------|--------------|
-| `/patient/records` | `0640` | uid=2 (patient) | Patient (rw), clinician-group (r), admin override |
-| `/dosage/insulin.log` | `0660` | uid=1 (doctor) | Clinician (rw), admin override |
+| `/patient/records` | `0400` | uid=1 (patient) | Patient read-only, admin override |
+| `/dosage/insulin.log` | `0620` | uid=2 (doctor) | Doctor (rw), group write, admin override |
 | `/device/config` | `0600` | uid=0 (admin) | Admin only |
 | `/audit/syscall.log` | `0400` | uid=0 (admin) | Admin read-only |
 

@@ -103,8 +103,8 @@ login:
 Type your username and password:
 
 ```
-login: root
-password: root123
+login: admin
+password: admin123
 $
 ```
 

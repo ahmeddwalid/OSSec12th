@@ -81,8 +81,8 @@ cd xv6-security
 make qemu
 
 # 3: Log in as admin
-login: root
-password: root123
+login: admin
+password: admin123
 
 # 4: Run compliance tests
 $ compliance_test
