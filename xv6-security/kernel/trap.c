@@ -16,37 +16,6 @@ void kernelvec();
 
 extern int devintr();
 
-// Return a human-readable name for a RISC-V scause value.
-static const char *
-scause_name(uint64 scause)
-{
-  if(scause & (1ULL << 63)){
-    switch(scause & ~(1ULL << 63)){
-      case 1:  return "Supervisor software interrupt";
-      case 5:  return "Supervisor timer interrupt";
-      case 9:  return "Supervisor external interrupt";
-      default: return "Unknown interrupt";
-    }
-  }
-  switch(scause){
-    case 0:  return "Instruction address misaligned";
-    case 1:  return "Instruction access fault";
-    case 2:  return "Illegal instruction";
-    case 3:  return "Breakpoint";
-    case 4:  return "Load address misaligned";
-    case 5:  return "Load access fault";
-    case 6:  return "Store/AMO address misaligned";
-    case 7:  return "Store/AMO access fault";
-    case 8:  return "Environment call (U-mode)";
-    case 9:  return "Environment call (S-mode)";
-    case 11: return "Environment call (M-mode)";
-    case 12: return "Instruction page fault";
-    case 13: return "Load page fault";
-    case 15: return "Store/AMO page fault";
-    default: return "Unknown exception";
-  }
-}
-
 void
 trapinit(void)
 {
@@ -90,16 +59,11 @@ usertrap(void)
 
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
-    uint64 ecall_epc = p->trapframe->epc;   // save original ECALL address
     p->trapframe->epc += 4;
 
     // an interrupt will change sepc, scause, and sstatus,
     // so enable only now that we're done with those registers.
     intr_on();
-
-    // criterion 3.1: one-line trap audit record per syscall entry
-    printf("[TRAP] pid=%d uid=%d trap=%s epc=%p\n",
-           p->pid, p->uid, scause_name(8), (void *)ecall_epc);
 
     syscall();
   } else if((which_dev = devintr()) != 0){

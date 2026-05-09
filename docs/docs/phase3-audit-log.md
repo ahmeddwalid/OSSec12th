@@ -73,17 +73,9 @@ void audit_log(int syscall_no, int result) {
 
 ## Trap-Level Audit Printing
 
-`kernel/trap.c` prints a one-line record for every syscall trap entry via `scause_name()`:
+`kernel/trap.c` uses `usertrap()` to intercept every syscall at the ECALL boundary. Security events are recorded into the ring buffer via `audit_log()` from the appropriate syscall handlers rather than printed directly from the trap handler — printing from the trap handler would cause recursive spam since `printf` itself invokes `write` syscalls, one character at a time.
 
-```
-[TRAP] pid=3 uid=0 trap=Environment call (U-mode) epc=0x0000000080001234
-```
-
-This provides a real-time stream that QEMU captures in its terminal output, independent of the ring buffer. The `scause_name()` helper translates all standard RISC-V scause codes into human-readable strings.
-
-:::tip
-The trap audit lines are very noisy, one per syscall, and `printf` itself triggers write syscalls. During compliance testing, focus on the ring buffer output from `audit_dump`, not the raw trap lines.
-:::
+The ring buffer approach is the correct mechanism: use `audit_dump` to inspect the captured entries after a session.
 
 ## `audit_read`: Admin-Only Access
 
