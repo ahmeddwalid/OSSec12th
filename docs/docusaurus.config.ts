@@ -67,16 +67,11 @@ const config: Config = {
           type: 'docSidebar',
           sidebarId: 'mainSidebar',
           position: 'left',
-          label: '📖 Docs',
-        },
-        {
-          to: '/docs/intro',
-          label: 'Overview',
-          position: 'left',
+          label: 'Docs',
         },
         {
           to: '/docs/bonus-compliance-testing',
-          label: '✅ Compliance',
+          label: 'Compliance',
           position: 'left',
         },
         {
@@ -94,9 +89,9 @@ const config: Config = {
           items: [
             { label: 'Overview', to: '/docs/intro' },
             { label: 'Environment Setup', to: '/docs/environment-setup' },
-            { label: 'Phase 1 – Authentication', to: '/docs/phase1-authentication' },
-            { label: 'Phase 2 – File Permissions', to: '/docs/phase2-file-permissions' },
-            { label: 'Phase 3 – Audit Log', to: '/docs/phase3-audit-log' },
+            { label: 'Phase 1: Authentication', to: '/docs/phase1-authentication' },
+            { label: 'Phase 2: File Permissions', to: '/docs/phase2-file-permissions' },
+            { label: 'Phase 3: Audit Log', to: '/docs/phase3-audit-log' },
             { label: 'Compliance Testing', to: '/docs/bonus-compliance-testing' },
             { label: 'FDA / IEC 62443 Context', to: '/docs/fda-iec62443-context' },
           ],
@@ -114,7 +109,7 @@ const config: Config = {
           title: 'Course',
           items: [
             {
-              label: 'CCY4304 – Operating Systems Security',
+              label: 'CCY4304: Operating Systems Security',
               href: 'https://github.com/ahmeddwalid/OSSec12th',
             },
           ],
@@ -122,7 +117,7 @@ const config: Config = {
       ],
       copyright: `
         <div style="line-height:1.8;font-size:0.85rem;opacity:0.85">
-          <strong>CCY4304 – 12th Project: xv6 Medical Device Security</strong><br/>
+          <strong>CCY4304: 12th Project: xv6 Medical Device Security</strong><br/>
           Ahmed Walid Ibrahim (221011183) &amp; Ahmed Mohamed Mahmoud (221010720)<br/>
           Lecturer: Prof. Dr. Ayman Adel Abdel-Hamid &nbsp;|&nbsp; TA: Abdelrahman Solyman<br/>
           Built with Docusaurus ${new Date().getFullYear()}

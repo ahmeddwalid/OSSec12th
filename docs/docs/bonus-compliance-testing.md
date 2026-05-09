@@ -3,15 +3,15 @@ sidebar_position: 6
 title: Bonus Compliance Testing
 ---
 
-# Bonus — Compliance Testing
+# Bonus: Compliance Testing
 
 ## Purpose
 
 The `compliance_test` program is an automated end-to-end test suite that exercises all three security phases in a single run. It was designed for three audiences:
 
-1. **Graders** — produces a structured `PASS / FAIL` report with student identity
-2. **Developers** — catches regressions after kernel changes
-3. **Auditors** — maps each test to a security requirement
+1. **Graders**: produces a structured `PASS / FAIL` report with student identity
+2. **Developers**: catches regressions after kernel changes
+3. **Auditors**: maps each test to a security requirement
 
 ## How Tests Work
 
@@ -33,7 +33,7 @@ static void assert_fail(const char *name, int cond) {
 
 ## The 18 Tests
 
-### Phase 1 — Authentication (T01–T06)
+### Phase 1: Authentication (T01–T06)
 
 | ID | Test name | Description |
 |----|-----------|-------------|
@@ -44,7 +44,7 @@ static void assert_fail(const char *name, int cond) {
 | T05 | `useradd_by_patient_denied` | `useradd(...)` as patient → -1 |
 | T06 | `userdel_by_patient_denied` | `userdel(...)` as patient → -1 |
 
-### Phase 2 — File Permissions (T07–T12)
+### Phase 2: File Permissions (T07–T12)
 
 | ID | Test name | Description |
 |----|-----------|-------------|
@@ -55,7 +55,7 @@ static void assert_fail(const char *name, int cond) {
 | T11 | `doctor_cannot_read_config` | `open("/device/config", O_RDONLY)` as doctor → -1 |
 | T12 | `admin_can_open_all` | Admin opens `/device/config`, `/audit/syscall.log` → success |
 
-### Phase 3 — Audit Log (T13–T17)
+### Phase 3: Audit Log (T13–T17)
 
 | ID | Test name | Description |
 |----|-----------|-------------|
@@ -79,15 +79,15 @@ T17 is the flagship test. It simulates a realistic attack scenario:
 2. **Attempt unauthorized access** (`open("/device/config", O_RDONLY)` → denied)
 3. **Switch to admin** (`login("root","root123")`)
 4. **Read audit ring** (`audit_read(buf, sizeof buf)`)
-5. **Search ring for the denial** — find an entry with `syscall_no == SYS_open`, `uid == <patient_uid>`, `result == -1`
-6. **Assert found** — if the entry exists, T17 `PASS`
+5. **Search ring for the denial**: find an entry with `syscall_no == SYS_open`, `uid == <patient_uid>`, `result == -1`
+6. **Assert found**: if the entry exists, T17 `PASS`
 
 This proves all three phases interlock: Phase 1 provided the UID, Phase 2 denied the access and returned -1, Phase 3 recorded the result.
 
 ## Sample Output
 
 ```
-COMPLIANCE REPORT — CCY4304 12th Project
+COMPLIANCE REPORT: CCY4304 12th Project
 Team: Ahmed Walid Ibrahim (221011183) & Ahmed Mohamed Mahmoud (221010720)
 Lecturer: Prof. Dr. Ayman Adel Abdel-Hamid | TA: Abdelrahman Solyman
 ─────────────────────────────────────────────────────────────
@@ -113,6 +113,10 @@ Lecturer: Prof. Dr. Ayman Adel Abdel-Hamid | TA: Abdelrahman Solyman
 Passed: 18 / 18   Failed: 0 / 18
 ```
 
+> **Screenshot placeholder** — Full compliance run. Boot xv6, log in as `root`, run `compliance_test`. Capture the complete `PASS`/`FAIL` report from T01 through T18, ending with `Passed: 18 / 18`. Save to `docs/static/img/screenshots/compliance-full-pass.png`.
+
+![QEMU terminal showing compliance_test output: 18/18 PASS](/img/screenshots/compliance-full-pass.png)
+
 ## Running the Tests
 
 ```bash
@@ -131,7 +135,7 @@ $ compliance_test
 
 ## Known Implementation Details
 
-- **`DIRSIZ 16`** — The filename `compliance_test` is 16 characters, requiring `DIRSIZ` increased from 14 to 16 in `kernel/fs.h`. `mkfs.c` padding was updated accordingly.
-- **Audit ring ordering** — T15/T16 search backward from the newest entry. The ring may contain stale entries from earlier test phases; the search uses `uid` + `result` as a compound key.
-- **No libc** — xv6 user programs have no C standard library. The test uses `memcmp` for string comparison and manual `itoa` for number formatting.
+- **`DIRSIZ 16`**: The filename `compliance_test` is 16 characters, requiring `DIRSIZ` increased from 14 to 16 in `kernel/fs.h`. `mkfs.c` padding was updated accordingly.
+- **Audit ring ordering**: T15/T16 search backward from the newest entry. The ring may contain stale entries from earlier test phases; the search uses `uid` + `result` as a compound key.
+- **No libc**: xv6 user programs have no C standard library. The test uses `memcmp` for string comparison and manual `itoa` for number formatting.
 

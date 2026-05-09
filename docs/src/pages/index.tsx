@@ -15,8 +15,8 @@ const STATS = [
 /* ─── phase cards ─── */
 const PHASES = [
   {
-    icon: '🔑',
-    title: 'Phase 1 – Authentication',
+    icon: 'Auth',
+    title: 'Phase 1: Authentication',
     description:
       'UID/GID identity added to every xv6 process. SHA-256-style credential lookup from /etc/passwd. Boot-time login enforces identity before any shell access.',
     snippet: `struct proc {
@@ -29,8 +29,8 @@ const PHASES = [
     to: '/docs/phase1-authentication',
   },
   {
-    icon: '🛡️',
-    title: 'Phase 2 – File Permissions',
+    icon: 'DAC',
+    title: 'Phase 2: File Permissions',
     description:
       'Unix rwxrwxrwx mode bits + owner UID/GID on every inode. Four kernel hook points enforce DAC before any read, write, exec, or stat operation.',
     snippet: `struct dinode {
@@ -42,8 +42,8 @@ const PHASES = [
     to: '/docs/phase2-file-permissions',
   },
   {
-    icon: '📋',
-    title: 'Phase 3 – Audit Log',
+    icon: 'Audit',
+    title: 'Phase 3: Audit Log',
     description:
       'A 256-entry kernel ring buffer records every security event with timestamp, UID, syscall, and result. Admin-only audit_read syscall; non-admins receive EPERM.',
     snippet: `struct audit_entry {
@@ -92,8 +92,8 @@ const COMPLIANCE_LINES = [
 
 /* ─── team members ─── */
 const TEAM = [
-  { name: 'Ahmed Walid Ibrahim', id: '221011183' },
-  { name: 'Ahmed Mohamed Mahmoud', id: '221010720' },
+  { name: 'Ahmed Walid Ibrahim', id: '221011183', img: '/img/Ahmed Walid.png' },
+  { name: 'Ahmed Mohamed Mahmoud', id: '221010720', img: '/img/Ahmed Mohamed.png' },
 ];
 
 /* ════════════════════════════════════════════════════════════
@@ -108,19 +108,19 @@ function Hero(): React.ReactElement {
           Securing the Kernel.<br />Protecting Lives.
         </h1>
         <p className={styles.heroSubtitle}>
-          A medical-device OS security layer built on xv6-riscv — authentication,
+          A medical-device OS security layer built on xv6-riscv: authentication,
           discretionary access control, and syscall audit logging, designed to the
           spirit of FDA 2023 guidance and IEC 62443.
         </p>
         <div className={styles.heroButtons}>
           <Link className={clsx('button button--primary button--lg', styles.ctaPrimary)} to="/docs/intro">
-            📖 Read the Docs
+            Read the Docs
           </Link>
           <Link
             className={clsx('button button--outline button--lg', styles.ctaSecondary)}
             href="https://github.com/ahmeddwalid/OSSec12th"
           >
-            ⭐ View on GitHub
+            View on GitHub
           </Link>
         </div>
         <div className={styles.statsRow}>
@@ -147,13 +147,13 @@ function WhatIsThis(): React.ReactElement {
           <h2 className={styles.sectionTitle}>What is this project?</h2>
           <p>
             In 2019 Medtronic disclosed that its MiniMed 508 insulin pump could be
-            wirelessly commanded to deliver a lethal overdose — no authentication
+            wirelessly commanded to deliver a lethal overdose, with no authentication
             required. The root cause was a complete absence of OS-level access
             controls.
           </p>
           <p>
-            This project retrofits <strong>xv6-riscv</strong> — MIT's teaching
-            kernel used in OS courses worldwide — with three security layers that
+            This project retrofits <strong>xv6-riscv</strong>, MIT's teaching
+            kernel used in OS courses worldwide, with three security layers that
             mirror the controls a real medical-device OS must provide:
           </p>
           <ul>
@@ -250,7 +250,7 @@ function ComplianceReport(): React.ReactElement {
   return (
     <section className={clsx(styles.section, styles.sectionAlt)}>
       <div className={styles.container}>
-        <h2 className={clsx(styles.sectionTitle, styles.centered)}>✅ Compliance Report</h2>
+        <h2 className={clsx(styles.sectionTitle, styles.centered)}>Compliance Report</h2>
         <p className={clsx(styles.sectionSubtitle, styles.centered)}>
           18 automated tests run on real xv6 inside QEMU. All pass.
         </p>
@@ -290,14 +290,14 @@ function Team(): React.ReactElement {
         <div className={styles.teamGrid}>
           {TEAM.map((m) => (
             <div key={m.id} className={styles.teamCard}>
-              <div className={styles.teamAvatar}>{m.name.charAt(0)}</div>
+              <img src={m.img} alt={m.name} className={styles.teamAvatar} />
               <div className={styles.teamName}>{m.name}</div>
               <div className={styles.teamId}>ID: {m.id}</div>
             </div>
           ))}
         </div>
         <div className={styles.courseInfo}>
-          <p><strong>Course:</strong> CCY4304 – Operating Systems Security</p>
+          <p><strong>Course:</strong> CCY4304: Operating Systems Security</p>
           <p><strong>Lecturer:</strong> Prof. Dr. Ayman Adel Abdel-Hamid</p>
           <p><strong>Teaching Assistant:</strong> Abdelrahman Solyman</p>
         </div>
@@ -339,7 +339,7 @@ export default function Home(): React.ReactElement {
   return (
     <Layout
       title={siteConfig.title}
-      description="CCY4304 12th Project – xv6 medical device OS security: authentication, DAC file permissions, and syscall audit logging on RISC-V."
+      description="CCY4304 12th Project: xv6 medical device OS security: authentication, DAC file permissions, and syscall audit logging on RISC-V."
     >
       <Hero />
       <main>

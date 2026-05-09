@@ -3,7 +3,7 @@ sidebar_position: 5
 title: Phase 3 Audit Log
 ---
 
-# Phase 3 — Audit Log
+# Phase 3: Audit Log
 
 ## Motivation
 
@@ -19,12 +19,12 @@ Phase 3 adds a kernel-resident audit ring buffer that records every security-rel
 
 A ring buffer is the right structure for kernel-space audit logging because:
 
-1. **Bounded memory** — No dynamic allocation in syscall paths.
-2. **O(1) write** — Head and tail pointer arithmetic only.
-3. **Graceful overwrite** — Oldest events are silently dropped when full, keeping the system live.
+1. **Bounded memory**: No dynamic allocation in syscall paths.
+2. **O(1) write**: Head and tail pointer arithmetic only.
+3. **Graceful overwrite**: Oldest events are silently dropped when full, keeping the system live.
 
 ```
-Ring buffer — 256 slots, each is struct audit_entry
+Ring buffer: 256 slots, each is struct audit_entry
 
 head ───▶ [entry 0] [entry 1] ... [entry N] ──▶ tail wraps
            oldest                              newest
@@ -82,10 +82,10 @@ void audit_log(int syscall_no, int result) {
 This provides a real-time stream that QEMU captures in its terminal output, independent of the ring buffer.
 
 :::tip
-The trap audit lines are very noisy — one per syscall, and `printf` itself triggers write syscalls. During compliance testing, focus on the ring buffer output from `audit_dump`, not the raw trap lines.
+The trap audit lines are very noisy, one per syscall, and `printf` itself triggers write syscalls. During compliance testing, focus on the ring buffer output from `audit_dump`, not the raw trap lines.
 :::
 
-## `audit_read` — Admin-Only Access
+## `audit_read`: Admin-Only Access
 
 ```c
 // kernel/sysproc.c
@@ -114,7 +114,11 @@ PID  UID  SYSCALL       RESULT  TICK  COMM
 4    0    SYS_audit_r   0       89    compliance
 ```
 
-A `-1` result on `SYS_open` corresponds to a denied access — exactly the kind of evidence Phase 2 + Phase 3 together provide.
+A `-1` result on `SYS_open` corresponds to a denied access, exactly the kind of evidence Phase 2 + Phase 3 together provide.
+
+> **Screenshot placeholder** — `audit_dump` output. Boot xv6, log in as `root`, run `audit_dump`. Capture the full ring buffer table showing PIDs, UIDs, syscall numbers, results, and ticks. Save to `docs/static/img/screenshots/phase3-audit-dump.png`.
+
+![QEMU terminal showing audit_dump table with ring buffer entries](/img/screenshots/phase3-audit-dump.png)
 
 ## Compliance Coverage
 
@@ -129,6 +133,6 @@ A `-1` result on `SYS_open` corresponds to a denied access — exactly the kind 
 ## Security Notes
 
 - Audit records are in-kernel only. A patient process cannot reach the buffer.
-- The ring is **volatile** — it does not survive a reboot. A production system would flush to persistent storage.
+- The ring is **volatile**. It does not survive a reboot. A production system would flush to persistent storage.
 - Audit should be paired with access control, not treated as a substitute for it. Logging a denial is useful; *preventing* the action is essential.
 

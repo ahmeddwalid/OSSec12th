@@ -83,7 +83,7 @@ riscv64-linux-gnu-objcopy -S -O binary .obj/user/_compliance_test user/_complian
 ```
 
 :::note RWX segment warning
-Modern binutils warn about ELF segments with `RWX` permissions — which xv6 deliberately uses. The Makefile suppresses these with `-no-warn-rwx-segments`. If you see this warning on an older toolchain that ignores the flag, it is harmless.
+Modern binutils warn about ELF segments with `RWX` permissions, which xv6 deliberately uses. The Makefile suppresses these with `-no-warn-rwx-segments`. If you see this warning on an older toolchain that ignores the flag, it is harmless.
 :::
 
 ## Boot xv6 in QEMU
@@ -108,6 +108,10 @@ password: root123
 $
 ```
 
+> **Screenshot placeholder** — Boot login prompt. Run `make qemu`, wait for the `login:` prompt, enter credentials, and capture the terminal output. Save to `docs/static/img/screenshots/qemu-boot-login.png`.
+
+![QEMU terminal showing xv6 boot banner and login prompt](/img/screenshots/qemu-boot-login.png)
+
 ## QEMU Flags Explained
 
 The Makefile passes these flags to QEMU:
@@ -115,7 +119,7 @@ The Makefile passes these flags to QEMU:
 | Flag | Meaning |
 |------|---------|
 | `-machine virt` | Use the generic RISC-V virt board |
-| `-bios none` | No BIOS — jump directly to the kernel |
+| `-bios none` | No BIOS: jump directly to the kernel |
 | `-kernel kernel/kernel` | Load the kernel ELF |
 | `-m 128M` | Allocate 128 MiB of RAM |
 | `-smp 3` | Simulate 3 SMP cores (CPUs) |
@@ -126,7 +130,7 @@ The Makefile passes these flags to QEMU:
 
 Press `Ctrl-A` then `X` (release Ctrl-A first, then press X).
 
-Do **not** press `Ctrl-C` — that sends SIGINT to the QEMU process tree and may leave your terminal in a bad state.
+Do **not** press `Ctrl-C`: that sends SIGINT to the QEMU process tree and may leave your terminal in a bad state.
 
 ## Build the Docs Site
 

@@ -1,27 +1,143 @@
+<div id="top"></div>
+
 <div align="center">
-
-# CCY4304 — 12th Project: xv6 Medical Device Security
-
-**Ahmed Walid Ibrahim · 221011183** &nbsp;|&nbsp; **Ahmed Mohamed Mahmoud · 221010720**
-
-Lecturer: Prof. Dr. Ayman Adel Abdel-Hamid &nbsp;·&nbsp; TA: Abdelrahman Solyman
-
-[![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-00d4aa?style=flat-square)](https://ahmeddwalid.github.io/OSSec12th/docs)
-[![Compliance](https://img.shields.io/badge/compliance-18%2F18%20PASS-14532d?style=flat-square)](#compliance-results)
-
+  <h2>Operating Systems Security</h2>
+  <h3>Ahmed Walid &nbsp;&nbsp;·&nbsp;&nbsp; Ahmed Mohamed</h3>
+  <p>
+    CCY4304 12th Project: xv6 Medical Device Security
+    <br />
+    <a href="https://ossec.ahmeddwalid.me"><strong>Explore the docs »</strong></a>
+    <br /><br />
+    <a href="https://github.com/ahmeddwalid/OSSec12th/issues">Report Bug</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/ahmeddwalid/OSSec12th/pulls">Request Feature</a>
+  </p>
 </div>
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li><a href="#about-the-project">About the Project</a></li>
+    <li><a href="#team">Team</a></li>
+    <li>
+      <a href="#quick-start">Quick Start</a>
+      <ul>
+        <li><a href="#fedora--rhel">Fedora / RHEL</a></li>
+        <li><a href="#debianubuntukali-linux">Debian / Ubuntu / Kali Linux</a></li>
+        <li><a href="#arch-linux">Arch Linux</a></li>
+      </ul>
+    </li>
+    <li><a href="#repository-layout">Repository Layout</a></li>
+    <li><a href="#security-phases">Security Phases</a></li>
+    <li><a href="#compliance-results">Compliance Results</a></li>
+    <li><a href="#documentation-site">Documentation Site</a></li>
+    <li><a href="#toolchain-versions">Toolchain Versions</a></li>
+  </ol>
+</details>
 
 ---
 
-## Overview
+## About the Project
 
 This repository extends **xv6-riscv** with three security phases to demonstrate OS-level security controls relevant to connected medical devices. The scenario is inspired by the 2019 Medtronic MiniMed 508 insulin pump recall (CVE-2019-10964), where lack of authentication on a wireless interface allowed remote manipulation of insulin doses.
 
-| Phase | Feature | Kernel files |
-|-------|---------|-------------|
-| 1 | Login authentication + identity in `struct proc` | `kernel/auth.c`, `kernel/sysproc.c` |
-| 2 | Unix-style file permissions (mode/uid/gid on inodes) | `kernel/fs.c`, `kernel/perms.c`, `kernel/sysfile.c` |
-| 3 | Kernel audit ring buffer (256 entries, spinlock-protected) | `kernel/audit.c`, `kernel/trap.c` |
+The implementation satisfies the CIA triad requirements for a medical-device OS and maps to FDA 2023 cybersecurity guidance and IEC 62443 security requirements.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+---
+
+## Team
+
+| Name | Student ID | Role |
+|------|-----------|------|
+| Ahmed Walid Ibrahim | 221011183 | Developer |
+| Ahmed Mohamed Mahmoud | 221010720 | Developer |
+
+**Lecturer:** Prof. Dr. Ayman Adel Abdel-Hamid  
+**Teaching Assistant:** Abdelrahman Solyman  
+**Course:** CCY4304: Operating Systems Security  
+**University:** Arab Academy for Science, Technology and Maritime Transport
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+---
+
+## Quick Start
+
+### Fedora / RHEL
+
+```bash
+sudo dnf install make gcc perl python3 bc qemu-system-riscv-core \
+                 gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu \
+                 nodejs npm
+```
+
+### Debian / Ubuntu / Kali Linux
+
+```bash
+sudo apt update
+sudo apt install make gcc perl python3 bc qemu-system-misc \
+                 gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu \
+                 nodejs npm
+```
+
+> **Ubuntu 22.04+ / Kali note:** the package `qemu-system-misc` provides `qemu-system-riscv64`. On older Ubuntu (20.04) you may need to install QEMU from the QEMU PPA:
+> ```bash
+> sudo add-apt-repository ppa:canonical-server/server-backports
+> sudo apt update && sudo apt install qemu-system-riscv
+> ```
+
+### Arch Linux
+
+```bash
+sudo pacman -S make gcc perl python3 bc qemu-system-riscv \
+               riscv64-linux-gnu-gcc riscv64-linux-gnu-binutils \
+               nodejs npm
+```
+
+> **AUR alternative:** if `riscv64-linux-gnu-gcc` is not in the official repos for your version, install via AUR:
+> ```bash
+> yay -S riscv64-linux-gnu-gcc riscv64-linux-gnu-binutils
+> ```
+
+### Build and Run
+
+After installing the toolchain on any distro:
+
+```bash
+# Build the kernel
+cd xv6-security
+make clean && make
+
+# Boot in QEMU (terminal only)
+make qemu-nox
+
+# Press Ctrl-A then X to exit QEMU
+```
+
+### Log In
+
+At the secure login prompt:
+
+| Username | Password | Role |
+|----------|----------|------|
+| `root` | `root123` | Administrator |
+| `admin` | `admin123` | Administrator |
+| `doctor1` | `doctor123` | Clinician |
+| `patient1` | `patient123` | Patient |
+
+### Run Compliance Tests
+
+```sh
+compliance_test
+audit_dump
+```
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+---
 
 ## Repository Layout
 
@@ -37,53 +153,26 @@ This repository extends **xv6-riscv** with three security phases to demonstrate 
 └── README.md            This file
 ```
 
-## Quick Start
+<p align="right">(<a href="#top">back to top</a>)</p>
 
-### 1. Install Toolchain (Fedora)
+---
 
-```bash
-sudo dnf install make gcc perl python3 bc qemu-system-riscv-core \
-                 gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu \
-                 nodejs npm
-```
+## Security Phases
 
-### 2. Build xv6
+| Phase | Feature | Kernel files |
+|-------|---------|-------------|
+| 1: Authentication | Login + identity in `struct proc` (uid/gid/role/authenticated) | `kernel/auth.c`, `kernel/sysproc.c` |
+| 2: File Permissions | Unix-style mode bits + owner on every inode; DAC at 4 hook points | `kernel/fs.c`, `kernel/perms.c`, `kernel/sysfile.c` |
+| 3: Audit Log | 256-entry kernel ring buffer, spinlock-protected, admin-only read | `kernel/audit.c`, `kernel/trap.c` |
 
-```bash
-cd xv6-security
-make clean && make
-```
+<p align="right">(<a href="#top">back to top</a>)</p>
 
-### 3. Boot in QEMU
-
-```bash
-make qemu        # with graphics
-# or
-make qemu-nox    # terminal only
-```
-
-### 4. Log In
-
-At the secure login prompt:
-
-| Username | Password | Role |
-|----------|----------|------|
-| `root` | `root123` | Administrator |
-| `admin` | `admin123` | Administrator |
-| `doctor1` | `doctor123` | Clinician |
-| `patient1` | `patient123` | Patient |
-
-### 5. Run Compliance Tests
-
-```sh
-compliance_test
-audit_dump
-```
+---
 
 ## Compliance Results
 
 ```
-COMPLIANCE REPORT — CCY4304 12th Project
+COMPLIANCE REPORT: CCY4304 12th Project
 Team: Ahmed Walid Ibrahim (221011183) & Ahmed Mohamed Mahmoud (221010720)
 ─────────────────────────────────────────────────────────────
 [PASS] T01 valid_admin_login
@@ -108,9 +197,15 @@ Team: Ahmed Walid Ibrahim (221011183) & Ahmed Mohamed Mahmoud (221010720)
 Passed: 18 / 18   Failed: 0 / 18
 ```
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+---
+
 ## Documentation Site
 
-The full documentation is hosted on GitHub Pages. To build locally:
+The full documentation is hosted at **[ossec.ahmeddwalid.me](https://ossec.ahmeddwalid.me)**.
+
+To build locally:
 
 ```bash
 cd docs
@@ -119,7 +214,9 @@ npm run build
 npm run serve    # preview at http://localhost:3000
 ```
 
-Online: [https://ahmeddwalid.github.io/OSSec12th/docs](https://ahmeddwalid.github.io/OSSec12th/docs)
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+---
 
 ## Toolchain Versions
 
@@ -130,24 +227,4 @@ Online: [https://ahmeddwalid.github.io/OSSec12th/docs](https://ahmeddwalid.githu
 | `make` | 4.4.1 |
 | Node.js | 22.x |
 
-## Stop QEMU
-
-Press `Ctrl-A` then `X`.
-
-
-After GitHub Pages deployment, the documentation is expected at:
-
-https://ossec.ahmeddwalid.me/
-
-## Quality Gates
-
-The final verification path for this submission is:
-
-```bash
-cd xv6-security
-make clean
-make 2>&1 | grep -E "error:|warning:"
-make qemu-nox
-```
-
-Inside xv6, log in as `admin/admin123`, run `compliance_test`, and confirm `Passed: 18 / 18`. Then run `audit_dump` to inspect syscall audit entries.
+<p align="right">(<a href="#top">back to top</a>)</p>

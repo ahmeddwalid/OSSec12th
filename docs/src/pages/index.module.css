@@ -190,7 +190,16 @@
 }
 
 .phaseIcon {
-  font-size: 2rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #00d4aa;
+  background: rgba(0, 212, 170, 0.12);
+  border: 1px solid rgba(0, 212, 170, 0.35);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  align-self: flex-start;
 }
 
 .phaseTitle {
@@ -333,16 +342,12 @@
 }
 
 .teamAvatar {
-  width: 60px;
-  height: 60px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00b894, #00d4aa);
-  color: #fff;
-  font-size: 1.5rem;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  object-fit: cover;
+  border: 3px solid rgba(0, 212, 170, 0.5);
+  display: block;
   margin: 0 auto 0.75rem;
 }
 
