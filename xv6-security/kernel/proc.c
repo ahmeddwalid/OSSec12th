@@ -124,6 +124,11 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->uid = -1;
+  p->gid = -1;
+  p->role = -1;
+  p->username[0] = 0;
+  p->authenticated = 0;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -164,6 +169,11 @@ freeproc(struct proc *p)
   p->sz = 0;
   p->pid = 0;
   p->parent = 0;
+  p->uid = -1;
+  p->gid = -1;
+  p->role = -1;
+  p->username[0] = 0;
+  p->authenticated = 0;
   p->name[0] = 0;
   p->chan = 0;
   p->killed = 0;
@@ -223,6 +233,11 @@ userinit(void)
 
   p = allocproc();
   initproc = p;
+  p->uid = 0;
+  p->gid = 0;
+  p->role = 0;
+  safestrcpy(p->username, "admin", sizeof(p->username));
+  p->authenticated = 1;
   
   p->cwd = namei("/");
 
@@ -287,6 +302,11 @@ kfork(void)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
+  np->uid = p->uid;
+  np->gid = p->gid;
+  np->role = p->role;
+  safestrcpy(np->username, p->username, sizeof(np->username));
+  np->authenticated = p->authenticated;
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
