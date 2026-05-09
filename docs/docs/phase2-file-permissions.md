@@ -110,8 +110,6 @@ Both syscalls require the caller to be admin or the owner of the target file. A 
 
 ## Compliance Coverage
 
-> **Screenshot placeholder** — Permission enforcement in action. Log in as `patient1`, then attempt `cat /device/config` and `cat /patient/records`. The first should print a permission denied error; the second should succeed. Capture both outputs. Save to `docs/static/img/screenshots/phase2-perm-denied.png`.
-
 ![QEMU terminal showing patient denied on /device/config and allowed on /patient/records](/img/screenshots/phase2-perm-denied.png)
 
 | Test | What it checks |
