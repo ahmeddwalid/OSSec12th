@@ -29,6 +29,21 @@ That minimalism is exactly what makes it the right substrate for this project. E
 
 The **bonus `compliance_test`** program runs 18 automated tests and produces a structured pass/fail report that maps each test to a regulatory requirement.
 
+## Original xv6 vs This Repository
+
+The documentation in this site describes a delta from stock `xv6-riscv` to this security-focused fork.
+
+| Area | Stock xv6-riscv | This repository |
+|------|------------------|-----------------|
+| Boot flow | `init` directly executes `sh` | `init` executes `login`; shell starts only after successful authentication |
+| Process identity | No persistent per-process user identity fields | `uid`, `gid`, `role`, `username`, and `authenticated` added to each process |
+| Authentication syscalls | None | `login`, `whoami`, `useradd`, `userdel`, `passwd` |
+| File metadata | `type`, `major`, `minor`, `nlink`, `size`, `addrs` | Added `mode`, `uid`, `gid` to inode metadata |
+| Access checks | Open/read/write rely on basic file semantics only | Permission checks enforced in `open`, `read`, `write`, and `exec` paths |
+| Auditability | No security event log | Kernel ring buffer logs syscall number, uid, pid, result, tick, command |
+
+The next three phase pages keep the same structure and explain exactly where each of these code-level changes was introduced.
+
 ## Architecture
 
 ```mermaid
@@ -59,7 +74,7 @@ OSSec12th/
 │   │   ├── sysfile.c      ← perm_check() hooks
 │   │   ├── audit.c        ← ring buffer + audit_log()
 │   │   ├── audit.h
-│   │   └── trap.c         ← audit printing on exit
+│   │   └── syscall.c      ← audit hook after syscall dispatch
 │   ├── user/
 │   │   ├── login.c        ← boot-time authenticator
 │   │   └── compliance_test.c
@@ -140,4 +155,4 @@ Passed: 18 / 18
 
 One easy mistake is treating xv6 like a normal Unix host. It has a tiny libc, a tiny shell, and no dynamic linker. Tests and tools must stay within the user library that xv6 provides.
 
-Another pitfall is forgetting that audit printing is intentionally noisy. The trap audit line prints for every syscall trap, and xv6 writes console output one byte at a time. For verification, strip audit lines from captured QEMU output before reading test summaries.
+Another pitfall is assuming audit data appears as automatic trap-line console output. In this fork, audit evidence is primarily consumed through the kernel ring buffer (`audit_read` and `audit_dump`), so test verification should focus on ring entries rather than terminal spam.

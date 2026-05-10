@@ -11,6 +11,20 @@ Stock xv6 calls `exec("sh", ...)` in `init.c` and the shell runs immediately wit
 
 Phase 1 imposes an identity boundary at the earliest possible moment, before the first shell command executes.
 
+## Original xv6 vs Phase 1 Code Delta
+
+Stock xv6 has no login step and no kernel-backed user identity. This phase introduces both.
+
+| Component | Stock xv6-riscv | Modified xv6-security |
+|-----------|------------------|------------------------|
+| Boot program | `user/init.c` starts `sh` directly | `user/init.c` starts `login` first |
+| Process credentials | `struct proc` has no user fields | Added `uid`, `gid`, `role`, `username`, `authenticated` |
+| Auth backend | No credential database | `/etc/passwd` seeded at boot via `auth_init()` |
+| Auth syscalls | None | `sys_login`, `sys_whoami`, `sys_useradd`, `sys_userdel`, `sys_passwd` |
+| Fork behavior | Child inherits memory/files only | Child also inherits identity fields (`uid/gid/role/username/authenticated`) |
+
+Files touched for this phase: `kernel/proc.h`, `kernel/proc.c`, `kernel/auth.h`, `kernel/auth.c`, `kernel/sysfile.c`, `kernel/syscall.c`, `kernel/syscall.h`, `user/init.c`, `user/login.c`.
+
 ## What Changed in `struct proc`
 
 Before Phase 1, `struct proc` had no user-identity fields at all. After Phase 1:
@@ -29,6 +43,8 @@ struct proc {
 
 Forked children inherit all five fields, so every descendant of a logged-in shell carries the same identity.
 
+Compared to stock xv6, this is the foundational kernel ABI change for user identity. Later phases (permissions and audit) rely on these fields rather than on user-space trust.
+
 ## The `/etc/passwd` Format
 
 ```
@@ -42,6 +58,8 @@ username|uid|gid|role|hash
 | `gid` | `0` | group ID |
 | `role` | `0` | 0=admin, 1=doctor, 2=patient |
 | `hash` | `a3f8...` | Four-word djb2-style hash (teaching model) |
+
+Stock xv6 does not ship `/etc/passwd` or account management syscalls. Here, `auth_init()` creates `/etc` and `/etc/passwd` on first boot and seeds three demo users so the secure boot path is immediately testable.
 
 Demo accounts baked into the image:
 
@@ -87,6 +105,8 @@ sequenceDiagram
 | `userdel(user)` | Admin only | Remove account entry |
 | `passwd(user, newpass)` | Admin only | Change password |
 
+Compared with original xv6, these syscall numbers are newly assigned in the syscall table and dispatched through `kernel/syscall.c`.
+
 The admin-only restriction is enforced **inside the kernel** (`kernel/auth.c`), not just in the user tool. A patient cannot call `useradd` by constructing a raw ECALL.
 
 ## `login.c` Walk-through
@@ -112,6 +132,8 @@ int main(void) {
 
 `exec` overwrites the login process image with the shell. The kernel's `proc` entry keeps `uid`, `gid`, `role`, and `authenticated = 1` across the `exec` because credentials are stored in `struct proc`, not in the user-space image.
 
+In stock xv6, the equivalent control flow is `init -> sh` with no identity gate. The modified flow is `init -> login -> sh` and only transitions to shell after `sys_login` succeeds.
+
 ## Compliance Coverage
 
 | Test | What it checks |
@@ -126,7 +148,7 @@ int main(void) {
 ## Security Notes
 
 - The hash in this teaching implementation is a simple XOR+sum over the password bytes. **This is not production-quality.** A real system would use Argon2id or bcrypt with a per-account salt.
-- Authenticated flag is reset to 0 on `fork` **before** exec (so a child cannot inherit a logged-in session without going through login again if the parent exits without passing the shell). The current design inherits credentials so the shell and child processes share the parent's identity, which is appropriate for a single-user session model.
+- Forked children inherit `uid`, `gid`, `role`, `username`, and `authenticated` from the parent in `kfork()`. This is intentional for a Unix-style session model where child processes run under the same logged-in identity.
 
 
 Remember to copy credentials on fork. If the child shell loses identity, later permission checks and audit entries become misleading.
