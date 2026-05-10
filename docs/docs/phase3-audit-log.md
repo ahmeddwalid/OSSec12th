@@ -15,6 +15,20 @@ Authentication and file permissions control *what can happen*. But after a secur
 
 Phase 3 adds a kernel-resident audit ring buffer that records every security-relevant syscall event.
 
+## Original xv6 vs Phase 3 Code Delta
+
+Stock xv6 does not keep a security audit trail of syscall outcomes. This phase adds a dedicated audit subsystem and an admin-only read interface.
+
+| Component | Stock xv6-riscv | Modified xv6-security |
+|-----------|------------------|------------------------|
+| Syscall event logging | No persistent syscall audit records | `audit_log(syscall_no, result)` called on every syscall return |
+| Kernel storage | None | Fixed-size ring buffer (`AUDIT_BUF_SIZE = 256`) with spinlock protection |
+| Audit record fields | N/A | `pid`, `uid`, `syscall_no`, `result`, `tick`, `comm` |
+| User access path | N/A | `sys_audit_read` + `audit_dump` user tool |
+| Access control | N/A | Audit read restricted to `uid == 0` |
+
+Files touched for this phase: `kernel/audit.h`, `kernel/audit.c`, `kernel/syscall.c`, `kernel/sysfile.c`, `kernel/syscall.h`, and `user/audit_dump.c`.
+
 ## Design: Ring Buffer
 
 A ring buffer is the right structure for kernel-space audit logging because:
@@ -58,18 +72,23 @@ void audit_log(int syscall_no, int result) {
   struct proc *p = myproc();
 
   acquire(&audit_lock);
-  struct audit_entry *e = &ring[tail % AUDIT_RING_SIZE];
+  struct audit_entry *e = &ring[head];
   e->pid        = p->pid;
   e->uid        = p->uid;
   e->syscall_no = syscall_no;
   e->result     = result;
   e->tick       = ticks;
   memmove(e->comm, p->name, sizeof e->comm);
-  tail++;
-  if (tail - head > AUDIT_RING_SIZE) head++;  // overwrite oldest
+  head = (head + 1) % AUDIT_BUF_SIZE;
+  if (count < AUDIT_BUF_SIZE)
+    count++;
+  else
+    tail = (tail + 1) % AUDIT_BUF_SIZE;
   release(&audit_lock);
 }
 ```
+
+In this repository, the hook is placed in `kernel/syscall.c` after syscall dispatch and before returning to user mode, so both successful and denied operations are captured with the same mechanism.
 
 ## Trap-Level Audit Printing
 
@@ -77,10 +96,12 @@ void audit_log(int syscall_no, int result) {
 
 The ring buffer approach is the correct mechanism: use `audit_dump` to inspect the captured entries after a session.
 
+Relative to stock xv6, this separates auditing from console output and provides machine-readable records for compliance tests.
+
 ## `audit_read`: Admin-Only Access
 
 ```c
-// kernel/sysproc.c
+// kernel/sysfile.c
 int sys_audit_read(void) {
   struct proc *p = myproc();
   if (p->uid != 0)              // not admin
@@ -91,6 +112,8 @@ int sys_audit_read(void) {
 ```
 
 Non-admin callers receive `-1` immediately. The kernel does not reveal even the buffer size to unprivileged processes.
+
+This is intentionally stricter than basic teaching-kernel behavior: audit observability is itself treated as privileged data.
 
 ## `audit_dump` Tool
 

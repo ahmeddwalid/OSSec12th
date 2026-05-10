@@ -11,6 +11,20 @@ After Phase 1 establishes *who* the user is, Phase 2 answers *what* they are all
 
 Phase 2 adds Unix-style DAC (Discretionary Access Control) to every inode.
 
+## Original xv6 vs Phase 2 Code Delta
+
+Stock xv6 has inode ownership fields in memory but not full Unix-style per-inode permission enforcement across all relevant syscall paths. This phase makes permissions first-class and enforced end-to-end.
+
+| Component | Stock xv6-riscv | Modified xv6-security |
+|-----------|------------------|------------------------|
+| On-disk inode metadata | No `mode/uid/gid` persisted in this project baseline | Added `mode`, `uid`, `gid` to `struct dinode` |
+| In-memory inode/stat propagation | Limited metadata for DAC decisions | `mode`, `uid`, `gid` loaded/stored via `ilock`, `iupdate`, `stati` |
+| Permission helper | None | `perm_check(ip, access)` in `kernel/perms.c` |
+| Enforcement points | Mostly open-time semantics | Explicit checks in `sys_open`, `fileread`, `filewrite`, `sys_exec` |
+| File ownership initialization | Generic file creation defaults | Ownership defaults set from caller identity during inode allocation |
+
+Files touched for this phase: `kernel/fs.h`, `kernel/file.h`, `kernel/stat.h`, `kernel/fs.c`, `kernel/file.c`, `kernel/sysfile.c`, `kernel/perms.h`, `kernel/perms.c`, `mkfs/mkfs.c`, plus user tools `user/chmod.c` and `user/chown.c`.
+
 ## The Permission Bit Model
 
 Unix permission bits pack into a 16-bit `mode` word:
@@ -48,6 +62,8 @@ struct dinode {
 ```
 
 The in-memory `struct inode` mirrors these fields. `ialloc`, `iupdate`, `ilock`, and `stati` all read and write the new fields.
+
+This is the key difference from original xv6 behavior in this codebase: permission decisions are now based on persistent inode metadata rather than ad hoc assumptions in user space.
 
 ## Medical Files and Their Permissions
 
@@ -94,6 +110,8 @@ Every file access in xv6 passes through one of these four kernel locations:
 
 Checking only at `open` is insufficient: an attacker with an already-open fd could still read/write after their permission is revoked.
 
+Compared with stock xv6, this closes a common teaching-kernel gap by validating access both when descriptors are opened and when I/O actually occurs.
+
 ## `chmod` and `chown` Syscalls
 
 ```bash
@@ -106,7 +124,9 @@ chmod /device/config 0600
 chown /dosage/insulin.log 1 1
 ```
 
-Both syscalls require the caller to be admin or the owner of the target file. A patient cannot `chown` their own records to another user.
+`chmod` allows admin or file owner to change mode bits. `chown` is stricter and requires admin (`uid == 0`) in the current implementation.
+
+These syscall entry points are additions in this repository and are wired through the expanded syscall table, so permissions are controlled in kernel space rather than only by convention in user programs.
 
 ## Compliance Coverage
 
