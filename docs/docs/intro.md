@@ -111,7 +111,7 @@ Ctrl-A  X
 | Name | Student ID |
 |------|-----------|
 | Ahmed Walid Ibrahim | 221011183 |
-| Ahmed Mohamed Mahmoud | 221010720 |
+| Jana Ashraf Ali | 221010291 |
 
 **Course:** CCY4304: Operating Systems Security  
 **Lecturer:** Prof. Dr. Ayman Adel Abdel-Hamid  

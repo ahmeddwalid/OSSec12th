@@ -118,7 +118,7 @@ const config: Config = {
       copyright: `
         <div style="line-height:1.8;font-size:0.85rem;opacity:0.85">
           <strong>CCY4304: 12th Project: xv6 Medical Device Security</strong><br/>
-          Ahmed Walid Ibrahim (221011183) &amp; Ahmed Mohamed Mahmoud (221010720)<br/>
+          Ahmed Walid Ibrahim (221011183) &amp; Jana Ashraf Ali (221010291)<br/>
           Lecturer: Prof. Dr. Ayman Adel Abdel-Hamid &nbsp;|&nbsp; TA: Abdelrahman Solyman<br/>
           Built with Docusaurus ${new Date().getFullYear()}
         </div>

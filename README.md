@@ -2,7 +2,7 @@
 
 <div align="center">
   <h2>Operating Systems Security</h2>
-  <h3>Ahmed Walid &nbsp;&nbsp;·&nbsp;&nbsp; Ahmed Mohamed</h3>
+  <h3>Ahmed Walid &nbsp;&nbsp;·&nbsp;&nbsp; Jana Ashraf</h3>
   <p>
     CCY4304 12th Project: xv6 Medical Device Security
     <br />
@@ -53,7 +53,7 @@ The implementation satisfies the CIA triad requirements for a medical-device OS 
 | Name | Student ID | Role |
 |------|-----------|------|
 | Ahmed Walid Ibrahim | 221011183 | Developer |
-| Ahmed Mohamed Mahmoud | 221010720 | Developer |
+| Jana Ashraf Ali | 221010291 | Developer |
 
 **Lecturer:** Prof. Dr. Ayman Adel Abdel-Hamid  
 **Teaching Assistant:** Abdelrahman Solyman  
@@ -173,7 +173,7 @@ audit_dump
 
 ```
 COMPLIANCE REPORT: CCY4304 12th Project
-Team: Ahmed Walid Ibrahim (221011183) & Ahmed Mohamed Mahmoud (221010720)
+Team: Ahmed Walid Ibrahim (221011183) & Jana Ashraf Ali (221010291)
 ─────────────────────────────────────────────────────────────
 [PASS] T01 valid_admin_login
 [PASS] T02 valid_patient_login
