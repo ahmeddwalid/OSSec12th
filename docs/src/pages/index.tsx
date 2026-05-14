@@ -93,7 +93,7 @@ const COMPLIANCE_LINES = [
 /* ─── team members ─── */
 const TEAM = [
   { name: 'Ahmed Walid Ibrahim', id: '221011183', img: '/img/Ahmed Walid.png', linkedin: 'https://www.linkedin.com/in/ahmeddwalid/' },
-  { name: 'Ahmed Mohamed Mahmoud', id: '221010720', img: '/img/Ahmed Mohamed.png', linkedin: 'https://www.linkedin.com/in/ahmed-abosamra-cybersec/' },
+  { name: 'Jana Ashraf Ali', id: '221010291', img: '/img/Jana Ashraf.png', linkedin: 'https://www.linkedin.com/in/janaaashraf/' },
 ];
 
 /* ════════════════════════════════════════════════════════════

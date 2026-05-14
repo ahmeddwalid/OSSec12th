@@ -175,8 +175,8 @@ main(void)
 
   printf("\n==========================================\n");
   printf("  COMPLIANCE REPORT - CCY4304 12th Project\n");
-  printf("  Students: Ahmed Walid - 221011183\n");
-  printf("            Ahmed Mohamed Mahmoud - 221010720\n");
+  printf("  Students: Ahmed Walid Ibrahim - 221011183\n");
+  printf("            Jana Ashraf Ali - 221010291\n");
   printf("  Passed: %d / %d\n", pass_count, pass_count + fail_count);
   printf("==========================================\n");
   exit(fail_count > 0 ? 1 : 0);
