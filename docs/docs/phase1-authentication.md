@@ -54,10 +54,20 @@ username|uid|gid|role|hash
 | Field | Example | Notes |
 |-------|---------|-------|
 | `username` | `admin` | Max 15 chars |
-| `uid` | `0` | 0 = admin |
-| `gid` | `0` | group ID |
-| `role` | `0` | 0=admin, 1=doctor, 2=patient |
+| `uid` | `0` | numeric user ID |
+| `gid` | `0` | group ID, mirrors the uid here |
+| `role` | `0` | 0=admin, 1=patient, 2=doctor |
 | `hash` | `a3f8...` | Four-word djb2-style hash (teaching model) |
+
+## The Three Roles
+
+The project has exactly three roles. The uid and the role number are the same value.
+
+| Role | uid | What they represent |
+|------|-----|---------------------|
+| ADMIN | 0 | Full access. Bypasses every file permission check. |
+| PATIENT | 1 | Reads their own records. Blocked from device config. |
+| DOCTOR | 2 | Writes the insulin log. Cannot read device config. |
 
 Stock xv6 does not ship `/etc/passwd` or account management syscalls. Here, `auth_init()` creates `/etc` and `/etc/passwd` on first boot and seeds three demo users so the secure boot path is immediately testable.
 
@@ -89,7 +99,7 @@ sequenceDiagram
         login->>shell: exec("/sh")
     else wrong password
         kernel->>login: return -1
-        login->>QEMU: "Login incorrect" + retry
+        login->>QEMU: "Login failed." + retry (locks after 3)
     end
 ```
 
@@ -99,11 +109,20 @@ sequenceDiagram
 
 | Syscall | Who can call | Description |
 |---------|-------------|-------------|
-| `login(user, pass)` | Anyone | Authenticate; sets kernel identity |
-| `whoami(buf, len)` | Anyone | Copy current `username` to user buffer |
-| `useradd(user, pass, role)` | Admin only | Create account entry in `/etc/passwd` |
-| `userdel(user)` | Admin only | Remove account entry |
-| `passwd(user, newpass)` | Admin only | Change password |
+| `login(user, pass)` | Anyone | Authenticate. Sets the kernel identity on success. |
+| `whoami(buf, len)` | Logged-in user | Copy current `username`, uid, gid, role into the buffer. |
+| `useradd(user, pass, role)` | Admin only | Add an account entry to `/etc/passwd`. |
+| `userdel(user)` | Admin only | Remove an account entry. The `admin` account cannot be deleted. |
+| `passwd(user, old, new)` | Owner or admin | Change a password. A normal user can only change their own and must give the old password. Admin can change anyone's. |
+
+The four account syscalls map to these user commands. Run them from the xv6 shell after logging in:
+
+```sh
+whoami                        # print who you are: name, uid, gid, role
+useradd nurse nurse123 1      # admin adds a patient-role account (role 1)
+passwd doctor1 doctor123 newpw  # doctor1 changes its own password
+userdel nurse                 # admin removes the account
+```
 
 Compared with original xv6, these syscall numbers are newly assigned in the syscall table and dispatched through `kernel/syscall.c`.
 
@@ -114,21 +133,27 @@ The admin-only restriction is enforced **inside the kernel** (`kernel/auth.c`), 
 ```c
 // user/login.c (simplified)
 int main(void) {
-  char user[16], pass[32];
+  char user[16], pass[64];
+  int failures = 0;
   for (;;) {
-    printf("login: ");   read_line(user, sizeof user);
-    printf("password: "); read_line(pass, sizeof pass);
+    printf("Username: "); read_line(user, sizeof user);
+    printf("Password: "); read_line(pass, sizeof pass);
 
-    int r = login(user, pass);   // ECALL → sys_login()
-    if (r == 0) {
+    if (login(user, pass) == 0) {   // ECALL -> sys_login()
       char *argv[] = { "sh", 0 };
-      exec("/sh", argv);
-      // exec only returns on failure
+      exec("sh", argv);             // only runs on success
     }
-    printf("Login incorrect\n\n");
+    failures++;
+    printf("Login failed.\n");
+    if (failures >= 3) {            // lock the device after 3 tries
+      printf("Device locked after 3 failed attempts.\n");
+      for (;;) pause(1000);
+    }
   }
 }
 ```
+
+After three failed attempts the login program stops trying and pauses forever. The device is locked until reboot. This models a wearable that should not let an attacker brute-force the PIN.
 
 `exec` overwrites the login process image with the shell. The kernel's `proc` entry keeps `uid`, `gid`, `role`, and `authenticated = 1` across the `exec` because credentials are stored in `struct proc`, not in the user-space image.
 
@@ -140,14 +165,14 @@ In stock xv6, the equivalent control flow is `init -> sh` with no identity gate.
 |------|---------------|
 | T01 | Valid admin login succeeds |
 | T02 | Valid patient login succeeds |
-| T03 | Wrong password is rejected |
-| T04 | `whoami` returns the correct username |
-| T05 | `useradd` by non-admin returns `-EPERM` |
-| T06 | `userdel` by non-admin returns `-EPERM` |
+| T03 | Valid doctor login succeeds |
+| T04 | Wrong password is rejected |
+| T05 | `useradd` by a non-admin returns `-EPERM` |
+| T06 | `whoami` returns the correct username |
 
 ## Security Notes
 
-- The hash in this teaching implementation is a simple XOR+sum over the password bytes. **This is not production-quality.** A real system would use Argon2id or bcrypt with a per-account salt.
+- The hash in this teaching implementation is a djb2-style hash over the password bytes. It runs four 32-bit accumulators to produce the 32-character digest stored in `/etc/passwd`. **This is not production-quality.** It has no salt and is fast to brute-force. A real system would use Argon2id or bcrypt with a per-account salt.
 - Forked children inherit `uid`, `gid`, `role`, `username`, and `authenticated` from the parent in `kfork()`. This is intentional for a Unix-style session model where child processes run under the same logged-in identity.
 
 
