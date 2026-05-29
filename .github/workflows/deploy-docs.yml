@@ -33,6 +33,14 @@ jobs:
         working-directory: docs
         run: npm ci
 
+      - name: Install Chromium for the PDF report
+        working-directory: docs
+        run: npx puppeteer browsers install chrome
+
+      - name: Generate PDF report
+        working-directory: docs
+        run: npm run report
+
       - name: Build Docusaurus site
         working-directory: docs
         run: npm run build
