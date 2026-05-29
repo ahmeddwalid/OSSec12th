@@ -4,6 +4,9 @@ docs/build/
 docs/.docusaurus/
 docs/.cache-loader/
 
+# ─── Generated PDF report (built in CI before deploy; run `npm run report` locally) ──
+docs/static/reports/*.pdf
+
 # ─── xv6 build artifacts ──────────────────────────────────────────────────────
 xv6-security/kernel/kernel
 xv6-security/fs.img
