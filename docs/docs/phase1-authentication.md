@@ -57,7 +57,7 @@ username|uid|gid|role|hash
 | `uid` | `0` | numeric user ID |
 | `gid` | `0` | group ID, mirrors the uid here |
 | `role` | `0` | 0=admin, 1=patient, 2=doctor |
-| `hash` | `a3f8...` | Four-word djb2-style hash (teaching model) |
+| `hash` | `a3f8...` | SHA-256 hash, 64 hex chars |
 
 ## The Three Roles
 
@@ -172,7 +172,7 @@ In stock xv6, the equivalent control flow is `init -> sh` with no identity gate.
 
 ## Security Notes
 
-- The hash in this teaching implementation is a djb2-style hash over the password bytes. It runs four 32-bit accumulators to produce the 32-character digest stored in `/etc/passwd`. **This is not production-quality.** It has no salt and is fast to brute-force. A real system would use Argon2id or bcrypt with a per-account salt.
+- Passwords are hashed with SHA-256 before storage in `/etc/passwd`. The implementation is self-contained (~80 lines of C) and needs no external crypto library. **This is not yet production-quality.** The hash has no salt and is fast to brute-force. A real system would use Argon2id or bcrypt with a per-account salt and a tunable work factor.
 - Forked children inherit `uid`, `gid`, `role`, `username`, and `authenticated` from the parent in `kfork()`. This is intentional for a Unix-style session model where child processes run under the same logged-in identity.
 
 

@@ -79,11 +79,12 @@ Credentials live in `/etc/passwd`, one account per line:
 username|uid|gid|role|hash
 ```
 
-Passwords are never stored in the clear. We hash them first. The hash is a djb2-style function that
-runs four 32-bit accumulators to produce a 32-character digest. It is deterministic and needs no
-crypto library, which suits a teaching kernel. It is not safe for real use: there is no salt and it
-is fast to brute-force. A production device would use bcrypt or Argon2 with a per-account salt. The
-kernel seeds the three demo accounts into `/etc/passwd` on first boot.
+Passwords are never stored in the clear. We hash them first. We use SHA-256, the same
+cryptographic hash behind TLS certificates, Bitcoin, and Git. The implementation is self-contained
+and needs no external library. About 80 lines of C inside `pw_hash()` produces a 64-character
+hex digest. The hash still lacks a salt and a tunable work factor, which a production device should
+add via bcrypt or Argon2id, but the core primitive is now a real standard rather than a teaching
+approximation.
 
 ## The login flow
 

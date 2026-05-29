@@ -18,7 +18,7 @@ const PHASES = [
     icon: 'Auth',
     title: 'Phase 1: Authentication',
     description:
-      'UID/GID identity added to every xv6 process. SHA-256-style credential lookup from /etc/passwd. Boot-time login enforces identity before any shell access.',
+      'UID/GID identity added to every xv6 process. SHA-256 credential lookup from /etc/passwd. Boot-time login enforces identity before any shell access.',
     snippet: `struct proc {
   uint uid;   /* user id     */
   uint gid;   /* group id    */

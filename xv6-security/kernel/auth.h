@@ -7,7 +7,7 @@
 
 #define MAX_USERS    16
 #define PASSWD_FILE  "/etc/passwd"
-#define HASH_LEN     32
+#define HASH_LEN     64
 
 struct credential {
   char username[16];
