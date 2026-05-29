@@ -53,10 +53,10 @@ Example: `0644` = `rw-r--r--`:
 ```c
 /* kernel/fs.h: new fields on the on-disk inode */
 struct dinode {
-  short type;    // existing: T_FILE, T_DIR, T_DEVICE
-  short mode;    // NEW: octal permission bits
-  short uid;     // NEW: owner user ID
-  short gid;     // NEW: owner group ID
+  short  type;    // existing: T_FILE, T_DIR, T_DEVICE
+  ushort mode;    // NEW: octal permission bits, e.g. 0644
+  ushort uid;     // NEW: owner user ID
+  ushort gid;     // NEW: owner group ID
   // ... rest unchanged ...
 };
 ```
@@ -71,10 +71,12 @@ This is the key difference from original xv6 behavior in this codebase: permissi
 
 | Path | Mode | Owner | Accessible by |
 |------|------|-------|--------------|
-| `/patient/records` | `0400` | uid=1 (patient) | Patient read-only, admin override |
-| `/dosage/insulin.log` | `0620` | uid=2 (doctor) | Doctor (rw), group write, admin override |
-| `/device/config` | `0600` | uid=0 (admin) | Admin only |
-| `/audit/syscall.log` | `0400` | uid=0 (admin) | Admin read-only |
+| `/patient/records` | `0400` | uid=1, gid=1 | Patient reads, admin override |
+| `/dosage/insulin.log` | `0640` | uid=2, gid=1 | Doctor (owner) writes, patient (group) reads, admin override |
+| `/device/config` | `0600` | uid=0, gid=0 | Admin only |
+| `/audit/syscall.log` | `0400` | uid=0, gid=0 | Admin read-only |
+
+The insulin log is the one file two roles share. The doctor owns it and writes new doses. The patient is put in the file's group (gid=1) with read-only group bits, so they can see their dose history but never change it. Nobody else gets any access.
 
 ## `perm_check()` Flowchart
 
@@ -97,6 +99,21 @@ flowchart TD
     style Y fill:#7f1d1d,color:#fecaca
 ```
 
+## Walkthrough: a Patient Opens `/device/config`
+
+Say the patient is logged in (uid=1, gid=1) and runs `cat /device/config`. The file is owned by admin (uid=0, gid=0) with mode `0600`. Here is what the kernel does, step by step:
+
+1. `sys_open` calls `namei("/device/config")` and finds the inode.
+2. It calls `perm_check(ip, 'r')` before handing back a file descriptor.
+3. `perm_check` first asks: is the caller admin (uid 0)? No, the patient is uid 1. No bypass.
+4. Is the caller the owner? `ip->uid` is 0, the patient is uid 1. Not the owner.
+5. Is the caller in the file's group? `ip->gid` is 0, the patient's gid is 1. Not the group.
+6. So the patient falls into the "other" class. The "other" read bit in `0600` is not set.
+7. `perm_check` returns 0. `sys_open` returns -1. The `cat` fails with a permission error.
+8. The audit log records this: a `SYS_open` with result -1 from uid 1. See Phase 3.
+
+The patient never sees the device config, and the attempt leaves a trace. If the same patient opened `/patient/records` instead, step 4 would match (they own it) and the open would succeed.
+
 ## The Four Enforcement Points
 
 Every file access in xv6 passes through one of these four kernel locations:
@@ -106,7 +123,7 @@ Every file access in xv6 passes through one of these four kernel locations:
 | `sys_open()` | `kernel/sysfile.c` | Before any file descriptor is created |
 | `fileread()` | `kernel/file.c` | On every `read()` syscall |
 | `filewrite()` | `kernel/file.c` | On every `write()` syscall |
-| `sys_exec()` | `kernel/exec.c` | Before loading a program image |
+| `sys_exec()` | `kernel/sysfile.c` | Before loading a program image |
 
 Checking only at `open` is insufficient: an attacker with an already-open fd could still read/write after their permission is revoked.
 
