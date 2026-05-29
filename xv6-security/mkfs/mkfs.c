@@ -300,7 +300,7 @@ add_medical_files(uint rootino)
   uint audit = mkdir_meta(rootino, "audit", 0755, 0, 0);
 
   file_meta(patient, "records", "Patient record: glucose stable, follow-up required.\n", 0400, 1, 1);
-  file_meta(dosage, "insulin.log", "Insulin dosage log initialized.\n", 0620, 2, 2);
+  file_meta(dosage, "insulin.log", "Insulin dosage log initialized.\n", 0640, 2, 1);
   file_meta(device, "config", "Device config: basal_rate=1.0 safety_lock=on\n", 0600, 0, 0);
   file_meta(audit, "syscall.log", "Audit log placeholder; live events are kept in kernel memory.\n", 0400, 0, 0);
 }
