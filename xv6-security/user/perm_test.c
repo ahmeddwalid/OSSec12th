@@ -40,6 +40,9 @@ check_open_ok(char *label, char *user, char *pw, char *path, int mode)
     close(fd);
 }
 
+// tests file permissions on a medical device filesystem layout:
+// /device/config (admin-only), /patient/records (patient read, doctor write),
+// /dosage/insulin.log (doctor write).
 int
 main(void)
 {

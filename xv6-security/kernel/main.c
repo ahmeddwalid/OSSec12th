@@ -20,7 +20,7 @@ main()
     kvminit();       // create kernel page table
     kvminithart();   // turn on paging
     procinit();      // process table
-    audit_init();    // syscall audit ring buffer
+    audit_init();    // syscall audit ring buffer — init before any process exists
     trapinit();      // trap vectors
     trapinithart();  // install kernel trap vector
     plicinit();      // set up interrupt controller

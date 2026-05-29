@@ -12,7 +12,7 @@
 #include "file.h"
 #include "stat.h"
 #include "proc.h"
-#include "perms.h"
+#include "perms.h"    // perm_check for read/write dac enforcement
 
 struct devsw devsw[NDEV];
 struct {
@@ -164,6 +164,7 @@ filewrite(struct file *f, uint64 addr, int n)
 
       begin_op();
       ilock(f->ip);
+      // enforce dac before write — check after ilock to have inode data
       if(perm_check(f->ip, 'w') == 0){
         iunlock(f->ip);
         end_op();

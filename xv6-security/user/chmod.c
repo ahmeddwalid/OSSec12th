@@ -2,6 +2,8 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
+// converts an octal string (e.g. "644") to integer. no error checking — caller
+// validates via chmod() return value.
 static int
 octal(char *s)
 {

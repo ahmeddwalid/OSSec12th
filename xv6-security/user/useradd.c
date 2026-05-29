@@ -9,6 +9,7 @@ main(int argc, char *argv[])
     fprintf(2, "usage: useradd username password role\n");
     exit(1);
   }
+  // role is integer: 0=admin, 1=patient, 2=doctor
   if(useradd(argv[1], argv[2], atoi(argv[3])) < 0){
     fprintf(2, "useradd: failed\n");
     exit(1);

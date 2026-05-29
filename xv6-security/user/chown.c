@@ -9,6 +9,7 @@ main(int argc, char *argv[])
     fprintf(2, "usage: chown uid gid path\n");
     exit(1);
   }
+  // only root may change ownership — enforced by kernel
   if(chown(argv[3], atoi(argv[1]), atoi(argv[2])) < 0){
     fprintf(2, "chown: failed\n");
     exit(1);

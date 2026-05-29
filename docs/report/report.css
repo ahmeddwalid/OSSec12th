@@ -1,6 +1,7 @@
 /* ── xv6 Medical Device Security report — print styles ──
    Light report pages, dark code/terminal blocks, teal brand accents.
-   Targeted at Chromium print-to-PDF (A4). */
+   Targeted at Chromium print-to-PDF (A4).
+   Margin must match the margin passed to Puppeteer's page.pdf(). */
 
 :root {
   --teal: #00897b;
@@ -19,7 +20,7 @@
 
 @page {
   size: A4;
-  margin: 18mm 16mm 20mm 16mm;
+  margin: 18mm 16mm 20mm 16mm;  /* must match puppeteer page.pdf() margins */
 }
 
 * { box-sizing: border-box; }
@@ -32,14 +33,14 @@ html, body {
   font-family: var(--sans);
   font-size: 10.5pt;
   line-height: 1.6;
-  -webkit-print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;  /* force chromium to render backgrounds */
   print-color-adjust: exact;
 }
 
-/* ── Cover page ─────────────────────────────────────────── */
+/* ── Cover page: dark gradient background filling the full A4 content box ── */
 .cover {
   position: relative;
-  height: 247mm;            /* fills the A4 content box */
+  height: 247mm;            /* fills the A4 content box (297mm - 18mm - 20mm margins - padding) */
   margin: -4mm 0 0 0;
   padding: 0;
   page-break-after: always;
@@ -177,6 +178,7 @@ html, body {
   background: linear-gradient(90deg, var(--teal-bright), var(--rule) 60%);
 }
 
+/* ── Table of contents: dot leaders via a pseudo-element trick ── */
 .toc__row {
   display: flex;
   align-items: baseline;

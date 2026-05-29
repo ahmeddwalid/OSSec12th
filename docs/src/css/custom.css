@@ -1,4 +1,4 @@
-/* ─── Light mode ─────────────────────────────────────────────── */
+/* ─── Light mode: teal primary palette ────────────────────────── */
 :root {
   --ifm-color-primary: #00897b;
   --ifm-color-primary-dark: #00796b;
@@ -11,7 +11,7 @@
   --ifm-font-family-monospace: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
 }
 
-/* ─── Dark mode ──────────────────────────────────────────────── */
+/* ─── Dark mode: bright teal accent on deep navy background ─── */
 [data-theme='dark'] {
   --ifm-color-primary: #00d4aa;
   --ifm-color-primary-dark: #00be98;
@@ -43,7 +43,7 @@ pre {
   border: 1px solid #30363d;
 }
 
-/* ─── Download PDF navbar button ─────────────────────────────── */
+/* ─── Download PDF navbar button: gradient teal pill with hover glow ── */
 .navbar-pdf {
   display: inline-flex;
   align-items: center;
@@ -70,7 +70,7 @@ pre {
   flex-shrink: 0;
 }
 
-/* Keep the label on small screens but tighten spacing */
+/* ─── Keep the label on small screens but tighten spacing ── */
 @media (max-width: 600px) {
   .navbar-pdf {
     padding: 0.35rem 0.7rem;

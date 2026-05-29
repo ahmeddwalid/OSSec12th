@@ -34,9 +34,9 @@ struct dinode {
   short major;          // Major device number (T_DEVICE only)
   short minor;          // Minor device number (T_DEVICE only)
   short nlink;          // Number of links to inode in file system
-  ushort mode;          // Unix-style permission bits, e.g. 0644
-  ushort uid;           // owning user ID
-  ushort gid;           // owning group ID
+  ushort mode;          // unix rwx permission bits (e.g. 0644)
+  ushort uid;           // file owner user id
+  ushort gid;           // file owner group id
   uint size;            // Size of file (bytes)
   uint addrs[NDIRECT+1];   // Data block addresses
 };

@@ -1,6 +1,7 @@
 #ifndef AUTH_H
 #define AUTH_H
 
+// uid=0 maps to root per unix convention — all access granted in DAC checks
 #define ROLE_ADMIN   0
 #define ROLE_PATIENT 1
 #define ROLE_DOCTOR  2
@@ -9,12 +10,13 @@
 #define PASSWD_FILE  "/etc/passwd"
 #define HASH_LEN     64
 
+// one record in /etc/passwd. fields are pipe-delimited on disk: user|uid|gid|role|hash
 struct credential {
   char username[16];
   int uid;
   int gid;
   int role;
-  char hash[HASH_LEN + 1];
+  char hash[HASH_LEN + 1]; // sha-256 hex digest, 64 chars + nul
 };
 
 int  auth_login(char *username, char *password);
