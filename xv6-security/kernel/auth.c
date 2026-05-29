@@ -250,6 +250,9 @@ void
 pw_hash(const char *password, char *out_hex)
 {
   static char hex[] = "0123456789abcdef";
+  // Four 32-bit words give a 128-bit (32 hex char) digest. Each word starts
+  // from a different seed but runs the same djb2 step, so a one-character
+  // change spreads across the whole digest.
   uint h[4] = { 5381, 52711, 33013, 87911 };
 
   // This teaching kernel uses a deterministic djb2-style hash so it can run
@@ -257,10 +260,8 @@ pw_hash(const char *password, char *out_hex)
   // or Argon2 with per-user salts and a tunable work factor.
   for(; *password; password++){
     uchar c = *password;
-    h[0] = ((h[0] << 5) + h[0]) ^ c;
-    h[1] = ((h[1] << 5) + h[1]) + c + h[0];
-    h[2] = ((h[2] << 5) + h[2]) ^ (c << 1);
-    h[3] = ((h[3] << 5) + h[3]) + (c ^ h[2]);
+    for(int i = 0; i < 4; i++)
+      h[i] = ((h[i] << 5) + h[i]) ^ c;
   }
   for(int i = 0; i < 4; i++){
     for(int shift = 28; shift >= 0; shift -= 4)
