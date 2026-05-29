@@ -6,7 +6,13 @@
     "start": "docusaurus start",
     "build": "docusaurus build",
     "serve": "docusaurus serve",
-    "clear": "docusaurus clear"
+    "clear": "docusaurus clear",
+    "report": "node scripts/build-report.mjs"
+  },
+  "devDependencies": {
+    "highlight.js": "^11.10.0",
+    "markdown-it": "^14.1.0",
+    "puppeteer": "^23.6.0"
   },
   "dependencies": {
     "@docusaurus/core": "^3.8.1",
