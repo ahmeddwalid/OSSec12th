@@ -5,9 +5,15 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { dirname, resolve, basename, extname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
 import MarkdownIt from "markdown-it";
 import hljs from "highlight.js";
 import puppeteer from "puppeteer";
+
+const require = createRequire(import.meta.url);
+// Require the lib directly: pdf-parse's index.js has a debug block that reads a
+// bundled test PDF when module.parent is unset, which throws under ESM.
+const pdfParse = require("pdf-parse/lib/pdf-parse.js");
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const docsRoot = resolve(__dirname, "..");
@@ -15,10 +21,26 @@ const reportDir = resolve(docsRoot, "report");
 const staticDir = resolve(docsRoot, "static");
 const outDir = resolve(staticDir, "reports");
 const outFile = resolve(outDir, "xv6-medical-device-security-report.pdf");
+const tmpPdf = resolve(outDir, ".report.pass1.pdf");
+const logoUrl = pathToFileURL(resolve(staticDir, "img/logos/AAST Logo.png")).href;
 
 const TEAM = [
   { name: "Ahmed Walid Ibrahim", id: "221011183" },
   { name: "Jana Ashraf Ali", id: "221010291" },
+];
+
+// Top-level report sections, in document order. `title` must match the H1 text
+// in report.md; `key` is a distinctive fallback used if extraction drops the
+// colon or punctuation. Used to look up each section's page for the contents.
+const SECTIONS = [
+  { title: "Abstract", key: "Abstract" },
+  { title: "Environment and Build", key: "Environment and Build" },
+  { title: "Phase 1: User Authentication", key: "User Authentication" },
+  { title: "Phase 2: File Access Control", key: "File Access Control" },
+  { title: "Phase 3: Syscall Audit Log", key: "Syscall Audit Log" },
+  { title: "Compliance Testing", key: "Compliance Testing" },
+  { title: "Regulatory Context", key: "Regulatory Context" },
+  { title: "Appendix A: Source Code", key: "Appendix A" },
 ];
 
 const langByExt = { ".c": "c", ".h": "c", ".S": "armasm", ".sh": "bash", ".mk": "makefile" };
@@ -71,6 +93,7 @@ function buildCover() {
   const year = new Date().getFullYear();
   return `
   <section class="cover">
+    <div class="cover__logo"><img src="${logoUrl}" alt="Arab Academy for Science, Technology and Maritime Transport"/></div>
     <div class="cover__inner">
       <span class="cover__badge">CCY4304 &middot; 12th Project &middot; RISC-V xv6</span>
       <h1 class="cover__title">Securing the Kernel,<br/>Protecting Lives</h1>
@@ -88,6 +111,49 @@ function buildCover() {
       <span>${year}</span>
     </div>
   </section>`;
+}
+
+function buildToc(pageMap) {
+  const rows = SECTIONS.map((s) => {
+    const num = pageMap ? pageMap.get(s.title) ?? "" : "";
+    return (
+      `<div class="toc__row"><span class="toc__title">${s.title}</span>` +
+      `<span class="toc__dots"></span>` +
+      `<span class="toc__page">${num || "&middot;&middot;"}</span></div>`
+    );
+  }).join("");
+  return `
+  <section class="toc">
+    <h1 class="toc__heading">Table of Contents</h1>
+    ${rows}
+  </section>`;
+}
+
+// Read the pass-one PDF and find, for each section, the first page (at or after
+// the first content page) whose text contains the section title.
+async function measurePages(pdfBuffer, firstContentPage) {
+  const pages = [];
+  await pdfParse(pdfBuffer, {
+    pagerender: (pageData) =>
+      pageData.getTextContent().then((tc) => {
+        pages.push(tc.items.map((i) => i.str).join(" "));
+        return "";
+      }),
+  });
+  const norm = (s) => s.replace(/\s+/g, " ").trim();
+  const map = new Map();
+  for (const section of SECTIONS) {
+    const title = norm(section.title);
+    const key = norm(section.key);
+    for (let p = firstContentPage - 1; p < pages.length; p++) {
+      const text = norm(pages[p]);
+      if (text.includes(title) || text.includes(key)) {
+        map.set(section.title, p + 1); // 1-based page number
+        break;
+      }
+    }
+  }
+  return map;
 }
 
 function rewriteImagePaths(html) {
@@ -119,11 +185,16 @@ async function main() {
   });
   bodyHtml = rewriteImagePaths(bodyHtml);
 
-  const doc = `<!doctype html>
+  // The cover is page 1 and the contents page is page 2, so body content starts
+  // on page 3.
+  const FIRST_CONTENT_PAGE = 3;
+  const compose = (tocHtml) =>
+    `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <style>${css}</style></head>
 <body>
 ${buildCover()}
+${tocHtml}
 <main class="body">
 ${bodyHtml}
 </main>
@@ -131,35 +202,50 @@ ${bodyHtml}
 
   mkdirSync(outDir, { recursive: true });
 
-  // Write to a temp HTML file and load it with a file:// origin. Loading via
-  // setContent leaves the page on about:blank, and Chromium then refuses to
-  // load the local screenshot files as subresources.
-  const tmpHtml = resolve(outDir, ".report.tmp.html");
-  writeFileSync(tmpHtml, doc, "utf8");
-
   const browser = await puppeteer.launch({
     headless: true,
     args: ["--no-sandbox", "--disable-setuid-sandbox", "--font-render-hinting=none"],
   });
-  try {
+
+  // Load HTML from a temp file so the page has a file:// origin; Chromium refuses
+  // to load the local screenshots as subresources from an about:blank document.
+  const renderPdf = async (doc, outPath) => {
+    const tmpHtml = resolve(outDir, ".report.tmp.html");
+    writeFileSync(tmpHtml, doc, "utf8");
     const page = await browser.newPage();
-    await page.goto(pathToFileURL(tmpHtml).href, { waitUntil: "networkidle0" });
-    await page.pdf({
-      path: outFile,
-      format: "A4",
-      printBackground: true,
-      displayHeaderFooter: true,
-      headerTemplate: "<span></span>",
-      footerTemplate:
-        '<div style="width:100%;font-size:7pt;color:#8a98a5;padding:0 16mm;font-family:Arial,sans-serif;display:flex;justify-content:space-between;">' +
-        "<span>xv6 Medical Device Security</span>" +
-        '<span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>' +
-        "</div>",
-      margin: { top: "18mm", bottom: "20mm", left: "16mm", right: "16mm" },
-    });
+    try {
+      await page.goto(pathToFileURL(tmpHtml).href, { waitUntil: "networkidle0" });
+      await page.pdf({
+        path: outPath,
+        format: "A4",
+        printBackground: true,
+        displayHeaderFooter: true,
+        headerTemplate: "<span></span>",
+        footerTemplate:
+          '<div style="width:100%;font-size:7pt;color:#8a98a5;padding:0 16mm;font-family:Arial,sans-serif;display:flex;justify-content:space-between;">' +
+          "<span>xv6 Medical Device Security</span>" +
+          '<span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>' +
+          "</div>",
+        margin: { top: "18mm", bottom: "20mm", left: "16mm", right: "16mm" },
+      });
+    } finally {
+      await page.close();
+      rmSync(tmpHtml, { force: true });
+    }
+  };
+
+  try {
+    // Pass 1: render with placeholder page numbers, then read where each section
+    // landed. The contents page keeps the same size in both passes, so the page
+    // numbers measured here stay valid for the final render.
+    await renderPdf(compose(buildToc(null)), tmpPdf);
+    const pageMap = await measurePages(readFileSync(tmpPdf), FIRST_CONTENT_PAGE);
+
+    // Pass 2: render the final PDF with real page numbers in the contents.
+    await renderPdf(compose(buildToc(pageMap)), outFile);
   } finally {
     await browser.close();
-    rmSync(tmpHtml, { force: true });
+    rmSync(tmpPdf, { force: true });
   }
 
   console.log(`Report written to ${outFile}`);
