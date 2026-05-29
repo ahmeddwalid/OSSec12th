@@ -10,13 +10,13 @@
 #include "perms.h"
 
 static int
-access_bit(char access, int owner)
+access_bit(char access, int klass)
 {
-  if(owner == 0){
+  if(klass == 0){
     if(access == 'r') return PERM_OWNER_READ;
     if(access == 'w') return PERM_OWNER_WRITE;
     if(access == 'x') return PERM_OWNER_EXEC;
-  } else if(owner == 1){
+  } else if(klass == 1){
     if(access == 'r') return PERM_GROUP_READ;
     if(access == 'w') return PERM_GROUP_WRITE;
     if(access == 'x') return PERM_GROUP_EXEC;
