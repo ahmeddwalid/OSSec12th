@@ -9,6 +9,7 @@ main(int argc, char *argv[])
     fprintf(2, "usage: passwd username old_password new_password\n");
     exit(1);
   }
+  // kernel enforces: non-admin must supply correct old password
   if(passwd(argv[1], argv[2], argv[3]) < 0){
     fprintf(2, "passwd: failed\n");
     exit(1);

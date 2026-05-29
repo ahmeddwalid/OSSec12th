@@ -110,8 +110,8 @@ extern uint64 sys_chmod(void);
 extern uint64 sys_chown(void);
 extern uint64 sys_audit_read(void);
 
-// An array mapping syscall numbers from syscall.h
-// to the function that handles the system call.
+// system call dispatch table. indexed by syscall number from syscall.h.
+// entries 22-29 are the security extensions added by this project.
 static uint64 (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
@@ -144,6 +144,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_audit_read] sys_audit_read,
 };
 
+// risc-v passes syscall number in a7 register; return value goes in a0.
 void
 syscall(void)
 {
@@ -153,8 +154,6 @@ syscall(void)
 
   num = p->trapframe->a7;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-    // Use num to lookup the system call function for num, call it,
-    // and store its return value in p->trapframe->a0
     ret = syscalls[num]();
     p->trapframe->a0 = ret;
   } else {
@@ -163,5 +162,6 @@ syscall(void)
     ret = -1;
     p->trapframe->a0 = ret;
   }
+  // log every syscall — pass or fail — into the audit ring buffer
   audit_log(num, (int)ret);
 }

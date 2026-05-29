@@ -24,6 +24,7 @@ int getpid(void);
 char* sys_sbrk(int,int);
 int pause(int);
 int uptime(void);
+// security syscalls — kernel enforces access control (admin-only, auth-required)
 int login(char*, char*);
 int useradd(char*, char*, int);
 int userdel(char*);

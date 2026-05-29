@@ -9,12 +9,12 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
-// audit.c
+// audit.c — syscall audit ring buffer (security project)
 void            audit_init(void);
 void            audit_log(int, int);
 int             audit_read(char*, int);
 
-// auth.c
+// auth.c — credential file management, sha-256 hashing (security project)
 void            auth_init(void);
 
 // bio.c

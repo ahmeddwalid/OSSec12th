@@ -6,12 +6,15 @@
 #include "proc.h"
 #include "audit.h"
 
+// 256-entry circular buffer. head is write position, tail is oldest valid entry.
+// count tracks how many entries are live (clamped at AUDIT_BUF_SIZE).
 static struct audit_entry ring[AUDIT_BUF_SIZE];
 static int head;
 static int tail;
 static int count;
 static struct spinlock audit_lock;
 
+// called from main() early — before any process or syscall exists.
 void
 audit_init(void)
 {
@@ -22,6 +25,8 @@ audit_init(void)
   count = 0;
 }
 
+// called from syscall() on every invocation — success or failure. spinlock protects
+// against concurrent writes from multiple cores. wraps around when full.
 void
 audit_log(int syscall_no, int result)
 {
@@ -47,6 +52,8 @@ audit_log(int syscall_no, int result)
   release(&audit_lock);
 }
 
+// admin-only (uid==0). copies the oldest nentry entries into caller buffer.
+// returns bytes written, -1 on permission denied.
 int
 audit_read(char *buf, int bufsz)
 {

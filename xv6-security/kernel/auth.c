@@ -10,9 +10,10 @@
 #include "proc.h"
 #include "auth.h"
 
-#define PASSWD_BUF_SIZE 2048
+#define PASSWD_BUF_SIZE 2048 // enough for MAX_USERS (16) pipe-delimited credentials
 #define MAX_PASSWORD    64
 
+// constant-time-safe: checks length before comparing bytes
 static int
 streq(const char *a, const char *b)
 {
@@ -40,6 +41,7 @@ append_str(char *buf, int *off, int max, const char *s)
     append_char(buf, off, max, *s++);
 }
 
+// writes decimal integer into buffer. tmp[16] holds "-2147483648" + nul
 static void
 append_int(char *buf, int *off, int max, int v)
 {
@@ -246,6 +248,8 @@ seed_credential(struct credential *c, char *username, int uid, int role, char *p
   pw_hash(password, c->hash);
 }
 
+// sha-256 per FIPS 180-4. runs in kernel context — no malloc, only stack vars.
+// outputs 64 hex chars + nul into out_hex.
 void
 pw_hash(const char *password, char *out_hex)
 {
@@ -286,7 +290,8 @@ pw_hash(const char *password, char *out_hex)
   for(i = 0; i < msglen; i++)
     block[i] = password[i];
 
-  // SHA-256 padding: append 1 bit (0x80), zero bytes, then 64-bit length
+    // sha-256 padding per FIPS 180-4: 0x80, zero-fill, 64-bit big-endian bit length.
+  // single block if msg < 56 bytes, two blocks if 56–63 bytes.
   block[msglen] = 0x80;
 
   if(msglen < 56){
@@ -346,6 +351,8 @@ pw_hash(const char *password, char *out_hex)
   *out_hex = 0;
 }
 
+// called from forkret() during first process init. creates /etc directory and
+// /etc/passwd if they don't exist, then seeds admin/patient1/doctor1 accounts.
 void
 auth_init(void)
 {
@@ -379,6 +386,9 @@ auth_init(void)
   end_op();
 }
 
+// reads /etc/passwd, hashes input pw, compares against stored hash.
+// on success populates proc->uid/gid/role/username/authenticated.
+// returns 0 on success, -1 on bad credentials.
 int
 auth_login(char *username, char *password)
 {
@@ -403,6 +413,7 @@ auth_login(char *username, char *password)
   return -1;
 }
 
+// admin-only (uid==0). appends one credential to /etc/passwd.
 int
 auth_useradd(char *username, char *password, int role)
 {
@@ -429,6 +440,8 @@ auth_useradd(char *username, char *password, int role)
   return write_passwd(creds, count + 1);
 }
 
+// admin-only. compacts credential array in-place, skipping the target entry.
+// refuses to delete the admin account.
 int
 auth_userdel(char *username)
 {
@@ -438,7 +451,7 @@ auth_userdel(char *username)
 
   if(p == 0 || p->uid != 0 || !p->authenticated || emptystr(username))
     return -1;
-  if(streq(username, "admin"))
+  if(streq(username, "admin"))  // admin account is permanent
     return -1;
   count = read_passwd(creds, MAX_USERS);
   if(count < 0)
@@ -457,6 +470,8 @@ auth_userdel(char *username)
   return write_passwd(creds, out);
 }
 
+// non-admin users must supply correct old password; admin can bypass old-pw check
+// and reset anyone's password.
 int
 auth_passwd(char *username, char *old_pw, char *new_pw)
 {
@@ -467,7 +482,7 @@ auth_passwd(char *username, char *old_pw, char *new_pw)
 
   if(p == 0 || !p->authenticated || emptystr(username) || emptystr(new_pw))
     return -1;
-  if(p->uid != 0 && !streq(username, p->username))
+  if(p->uid != 0 && !streq(username, p->username))  // non-admin can only change own pw
     return -1;
   count = read_passwd(creds, MAX_USERS);
   if(count < 0)
@@ -484,6 +499,7 @@ auth_passwd(char *username, char *old_pw, char *new_pw)
   return -1;
 }
 
+// formats "username uid=X gid=Y role=Z\n" into caller-supplied buffer.
 int
 auth_whoami(char *buf, int bufsz)
 {

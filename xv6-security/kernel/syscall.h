@@ -20,6 +20,7 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+// security syscalls (22-29) — added for the medical device OS security project
 #define SYS_useradd  22
 #define SYS_userdel  23
 #define SYS_passwd   24

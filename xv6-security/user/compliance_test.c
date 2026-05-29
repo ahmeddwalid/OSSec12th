@@ -5,8 +5,10 @@
 #include "kernel/audit.h"
 #include "user/user.h"
 
-static int pass_count;
-static int fail_count;
+// 18-test automated compliance suite. runs on real xv6 inside qemu. each test
+// logs in as the relevant role, performs an operation, and checks the result.
+// login() is called before every test because xv6 has no logout — switching
+// identity means re-calling login on the current process.
 static struct audit_entry audit_entries[AUDIT_BUF_SIZE];
 
 #define ASSERT_EQ(label, got, expected) do { \
@@ -45,6 +47,7 @@ contains(char *haystack, char *needle)
   return 0;
 }
 
+// convenience: opens path with mode, closes fd, returns open result.
 static int
 open_close(char *path, int mode)
 {
@@ -82,6 +85,7 @@ write_text(char *path, char *text)
   return n;
 }
 
+// logs in as admin and reads the audit log. returns entry count on success.
 static int
 load_audit_as_admin(void)
 {
@@ -95,6 +99,8 @@ load_audit_as_admin(void)
   return n / sizeof(struct audit_entry);
 }
 
+// searches audit log for a specific syscall + result. exact=1 means result
+// must match exactly; exact=0 means result must be >= target (for 'any success').
 static int
 audit_has(int syscall_no, int result, int exact)
 {
@@ -164,11 +170,11 @@ main(void)
   ASSERT_EQ("T15 log contains EPERM denial event", denial_ret == -1 && audit_has(SYS_open, -1, 1), 1);
   ASSERT_EQ("T16 log contains successful write event", audit_has(SYS_write, 1, 0), 1);
 
+  // T17: verify that a denied operation is recorded in the audit log.
+  // this proves the audit trail can detect attacks — not just record activity.
   login("patient1", "patient123");
   attack_ret = open_close("/device/config", O_RDONLY);
-  ASSERT_EQ("T17 attack denied and detected in audit", attack_ret == -1 && audit_has(SYS_open, -1, 1), 1);
-
-  phases_ok = login("admin", "admin123") == 0 &&
+  ASSERT_EQ("T17 attack denied and detected in audit", attack_ret == -1 && audit_has(SYS_open, -1, 1), 1); = login("admin", "admin123") == 0 &&
               open_close("/device/config", O_RDONLY) >= 0 &&
               load_audit_as_admin() > 0;
   ASSERT_EQ("T18 all three phases active simultaneously", phases_ok, 1);

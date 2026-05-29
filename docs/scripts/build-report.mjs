@@ -1,6 +1,6 @@
 // Builds the project PDF report from report/report.md.
-// Renders Markdown to HTML, expands source-file includes, then prints to PDF
-// with Chromium via Puppeteer. Run with: npm run report
+// Workflow: parse md → expand INCLUDE directives → render HTML → print to PDF.
+// Two-pass: first pass measures section page numbers, second pass fills the TOC.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { dirname, resolve, basename, extname } from "node:path";
@@ -56,9 +56,9 @@ function highlight(code, lang) {
   return hljs.highlightAuto(code).value;
 }
 
-// Expand "<!-- INCLUDE path [startLine endLine] -->" markers into highlighted
-// listings. We swap them for placeholders so Markdown rendering leaves the
-// source untouched, then splice the listing HTML back in afterwards.
+// Expand "<!-- INCLUDE rel_path [start_line end_line] -->" directives into
+// syntax-highlighted code listings. We swap them for @@LISTING_N@@ tokens so
+// markdown-it doesn't mangle the code, then splice the rendered HTML back in.
 function extractIncludes(markdown) {
   const listings = [];
   const re = /<!--\s*INCLUDE\s+(\S+)(?:\s+(\d+)\s+(\d+))?\s*-->/g;
@@ -129,8 +129,8 @@ function buildToc(pageMap) {
   </section>`;
 }
 
-// Read the pass-one PDF and find, for each section, the first page (at or after
-// the first content page) whose text contains the section title.
+// Measure which page each section starts on by extracting text from every page
+// of a pass-1 PDF. pdf-parse's pagerender callback returns text content.
 async function measurePages(pdfBuffer, firstContentPage) {
   const pages = [];
   await pdfParse(pdfBuffer, {
@@ -157,8 +157,8 @@ async function measurePages(pdfBuffer, firstContentPage) {
 }
 
 function rewriteImagePaths(html) {
-  // Point relative image sources at the real files on disk so Chromium can load
-  // them when rendering from setContent (no web server involved).
+  // Chromium won't load relative image references from setContent(); rewrite
+  // /img/... paths to file:// urls pointing at static/img/.
   return html.replace(/src="(\/)?img\//g, () => `src="${pathToFileURL(resolve(staticDir, "img")).href}/`);
 }
 
@@ -204,6 +204,7 @@ ${bodyHtml}
 
   const browser = await puppeteer.launch({
     headless: true,
+    // --no-sandbox needed for CI/container environments where chrome runs as root
     args: ["--no-sandbox", "--disable-setuid-sandbox", "--font-render-hinting=none"],
   });
 
@@ -235,9 +236,8 @@ ${bodyHtml}
   };
 
   try {
-    // Pass 1: render with placeholder page numbers, then read where each section
-    // landed. The contents page keeps the same size in both passes, so the page
-    // numbers measured here stay valid for the final render.
+  // Pass 1: render with empty TOC → measure section pages → build real TOC.
+  // The TOC page size stays the same between passes, so measured numbers are valid.
     await renderPdf(compose(buildToc(null)), tmpPdf);
     const pageMap = await measurePages(readFileSync(tmpPdf), FIRST_CONTENT_PAGE);
 

@@ -9,6 +9,7 @@
 #include "proc.h"
 #include "perms.h"
 
+// maps r/w/x + klass (0=owner,1=group,2=other) to the matching permission bit.
 static int
 access_bit(char access, int klass)
 {
@@ -28,6 +29,9 @@ access_bit(char access, int klass)
   return 0;
 }
 
+// unix-style DAC: resolves caller to owner(0)/group(1)/other(2) and checks the
+// matching mode bit. root (uid==0) always passes. resolution order matters:
+// owner match takes priority over group match.
 int
 perm_check(struct inode *ip, char access)
 {
@@ -37,14 +41,14 @@ perm_check(struct inode *ip, char access)
 
   if(ip == 0)
     return 0;
-  if(p == 0 || p->uid == 0)
+  if(p == 0 || p->uid == 0)  // kernel threads and root bypass dac
     return 1;
   if(ip->uid == p->uid)
-    class = 0;
+    class = 0;       // file owner
   else if(ip->gid == p->gid)
-    class = 1;
+    class = 1;       // group member
   else
-    class = 2;
+    class = 2;       // everyone else
   bit = access_bit(access, class);
   return bit != 0 && (ip->mode & bit) != 0;
 }

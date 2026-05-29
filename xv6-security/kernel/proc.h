@@ -103,10 +103,10 @@ struct proc {
   struct context context;      // swtch() here to run process
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
-  int uid;                     // user ID: 0=admin, 1=patient, 2=doctor
-  int gid;                     // group ID, mirroring uid for this project
-  int role;                    // ROLE_ADMIN, ROLE_PATIENT, or ROLE_DOCTOR
-  char username[16];           // current logged-in username
-  int authenticated;           // 0 = not logged in, 1 = authenticated
+  int uid;                     // -1=unauthenticated, 0=admin/root, 1+=named user
+  int gid;                     // group id, mirrors uid in this implementation
+  int role;                    // ROLE_ADMIN=0, ROLE_PATIENT=1, ROLE_DOCTOR=2
+  char username[16];           // set by auth_login, empty until authenticated
+  int authenticated;           // 0 = fresh process, 1 = login() succeeded
   char name[16];               // Process name (debugging)
 };

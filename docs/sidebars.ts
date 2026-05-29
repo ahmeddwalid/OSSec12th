@@ -1,5 +1,6 @@
 import type { SidebarsConfig } from '@docusaurus/plugin-content-docs';
 
+// sidebar groups docs into logical sections: overview → phases → testing → context
 const sidebars: SidebarsConfig = {
   mainSidebar: [
     'intro',

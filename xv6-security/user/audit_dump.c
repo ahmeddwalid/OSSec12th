@@ -4,6 +4,7 @@
 #include "kernel/audit.h"
 #include "user/user.h"
 
+// maps syscall number to human-readable name. must stay in sync with syscall.h.
 static char*
 syscall_name(int num)
 {
@@ -45,11 +46,11 @@ int
 main(void)
 {
   struct audit_entry entries[96];
-  int n = audit_read((char*)entries, sizeof(entries));
+  int n = audit_read((char*)entries, sizeof(entries));  // raw kernel buffer dump
   int count;
 
   if(n < 0){
-    printf("Permission denied.\n");
+    printf("Permission denied.\n");  // non-admin gets EPERM
     exit(1);
   }
   count = n / sizeof(struct audit_entry);

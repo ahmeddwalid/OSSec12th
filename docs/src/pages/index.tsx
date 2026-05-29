@@ -5,14 +5,14 @@ import Layout from '@theme/Layout';
 import clsx from 'clsx';
 import styles from './index.module.css';
 
-/* ─── stat chips ─── */
+/* ─── stat chips: key numbers from the project ─── */
 const STATS = [
   { value: '18/18', label: 'Compliance Tests Passed' },
   { value: '3', label: 'Security Phases' },
   { value: '∞', label: 'Patient Lives Protected' },
 ];
 
-/* ─── phase cards ─── */
+/* ─── phase cards: one per security phase, each with a code snippet teaser ─── */
 const PHASES = [
   {
     icon: 'Auth',
@@ -57,7 +57,8 @@ const PHASES = [
   },
 ];
 
-/* ─── arch layers ─── */
+/* ─── arch layers: bottom-up view of the security stack. top layer runs first;
+   lower layers are called via ecall ─── */
 const ARCH_LAYERS = [
   { color: '#dc2626', label: 'compliance_test  |  login.c  |  user programs' },
   { color: '#d97706', label: 'usys.S syscall stubs  →  ECALL trap' },
@@ -66,7 +67,8 @@ const ARCH_LAYERS = [
   { color: '#7c3aed', label: 'xv6-riscv hardware (QEMU virt board)' },
 ];
 
-/* ─── compliance test lines ─── */
+/* ─── terminal simulation: raw output from compliance_test in a fake macos
+   terminal window. each line is pre-marked PASS/FAIL for styling ─── */
 const COMPLIANCE_LINES = [
   'T01: boot as root (admin)                   PASS',
   'T02: uid=0 after root login                 PASS',
@@ -97,8 +99,8 @@ const TEAM = [
 ];
 
 /* ════════════════════════════════════════════════════════════
-   Hero
-════════════════════════════════════════════════════════════ */
+   Hero — oversized headline, stat chips, cta buttons
+   ════════════════════════════════════════════════════════════ */
 function Hero(): React.ReactElement {
   return (
     <header className={styles.hero}>
@@ -137,8 +139,8 @@ function Hero(): React.ReactElement {
 }
 
 /* ════════════════════════════════════════════════════════════
-   What is this project?
-════════════════════════════════════════════════════════════ */
+   WhatIsThis — medtronic story, why xv6, project justification
+   ════════════════════════════════════════════════════════════ */
 function WhatIsThis(): React.ReactElement {
   return (
     <section className={styles.section}>
@@ -202,6 +204,7 @@ function Phases(): React.ReactElement {
               <div className={styles.phaseIcon}>{p.icon}</div>
               <h3 className={styles.phaseTitle}>{p.title}</h3>
               <p className={styles.phaseDesc}>{p.description}</p>
+              {/* inline code snippet gives a preview of the data structure changes */}
               <pre className={styles.codeSnippet}><code>{p.snippet}</code></pre>
               <Link className="button button--sm button--outline" to={p.to}>
                 View implementation →
@@ -230,6 +233,7 @@ function Architecture(): React.ReactElement {
             <div
               key={i}
               className={styles.archLayer}
+              // color-coded layer: red(user) → orange(syscall) → green(hooks) → blue(kernel) → purple(hw)
               style={{ borderLeftColor: l.color, background: `${l.color}18` }}
             >
               <span className={styles.archLayerNum}>{ARCH_LAYERS.length - i}</span>

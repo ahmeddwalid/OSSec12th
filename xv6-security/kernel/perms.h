@@ -1,6 +1,7 @@
 #ifndef PERMS_H
 #define PERMS_H
 
+// standard unix octal permission bits — match the 3×3 rwx grid
 #define PERM_OWNER_READ  0400
 #define PERM_OWNER_WRITE 0200
 #define PERM_OWNER_EXEC  0100

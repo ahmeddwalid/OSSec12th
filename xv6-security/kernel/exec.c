@@ -23,6 +23,8 @@ int flags2perm(int flags)
 //
 // the implementation of the exec() system call
 //
+// core elf loader. note: the execute ('x') permission check lives in sys_exec()
+// inside sysfile.c, not here — it runs before kexec is called.
 int
 kexec(char *path, char **argv)
 {

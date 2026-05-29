@@ -124,6 +124,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  // security fields: -1 = unauthenticated, 0 = not logged in
   p->uid = -1;
   p->gid = -1;
   p->role = -1;
@@ -169,7 +170,7 @@ freeproc(struct proc *p)
   p->sz = 0;
   p->pid = 0;
   p->parent = 0;
-  p->uid = -1;
+  p->uid = -1;        // wipe security context on process death
   p->gid = -1;
   p->role = -1;
   p->username[0] = 0;
@@ -233,7 +234,7 @@ userinit(void)
 
   p = allocproc();
   initproc = p;
-  p->uid = 0;
+  p->uid = 0;      // init runs as root — needed to start login and seed /etc
   p->gid = 0;
   p->role = 0;
   safestrcpy(p->username, "admin", sizeof(p->username));
@@ -302,7 +303,7 @@ kfork(void)
     if(p->ofile[i])
       np->ofile[i] = filedup(p->ofile[i]);
   np->cwd = idup(p->cwd);
-  np->uid = p->uid;
+  np->uid = p->uid;          // child inherits parent's security context
   np->gid = p->gid;
   np->role = p->role;
   safestrcpy(np->username, p->username, sizeof(np->username));
@@ -536,6 +537,7 @@ forkret(void)
     // File system initialization must be run in the context of a
     // regular process (e.g., because it calls sleep), and thus cannot
     // be run from main().
+    // first process: init fs, seed /etc/passwd, exec /init (which is login)
     fsinit(ROOTDEV);
     auth_init();
 

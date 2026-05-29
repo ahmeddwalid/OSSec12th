@@ -343,6 +343,8 @@ sys_open(void)
     return -1;
   }
 
+  // permission check: non-device files require matching r/w DAC permissions.
+  // device files (console, etc.) are skipped — they have no inode to check.
   if(ip->type != T_DEVICE){
     if((!(omode & O_WRONLY) && perm_check(ip, 'r') == 0) ||
        (((omode & O_WRONLY) || (omode & O_RDWR) || (omode & O_TRUNC)) && perm_check(ip, 'w') == 0)){
@@ -461,6 +463,7 @@ sys_exec(void)
     return -1;
   }
   ilock(ip);
+  // block exec if the caller lacks 'x' permission on the file
   if(ip->type != T_FILE || perm_check(ip, 'x') == 0){
     iunlockput(ip);
     end_op();
@@ -536,6 +539,7 @@ sys_login(void)
 {
   char username[16];
   char password[64];
+  // both args are user-space strings, copied in by argstr
 
   if(argstr(0, username, sizeof(username)) < 0 ||
      argstr(1, password, sizeof(password)) < 0)
@@ -551,6 +555,7 @@ sys_useradd(void)
   int role;
 
   argint(2, &role);
+  // role comes from user space as an int — validated by auth_useradd
   if(argstr(0, username, sizeof(username)) < 0 ||
      argstr(1, password, sizeof(password)) < 0)
     return -1;
@@ -622,6 +627,7 @@ sys_chmod(void)
     return -1;
   }
   ilock(ip);
+  // only root or the file owner can change mode bits
   if(p->uid != 0 && ip->uid != p->uid){
     iunlockput(ip);
     end_op();
@@ -646,6 +652,7 @@ sys_chown(void)
   argint(2, &gid);
   if(argstr(0, path, MAXPATH) < 0)
     return -1;
+  // only root may change file ownership
   if(p->uid != 0)
     return -1;
   begin_op();
@@ -673,11 +680,11 @@ sys_audit_read(void)
 
   argaddr(0, &addr);
   argint(1, &bufsz);
-  if(bufsz <= 0 || p->uid != 0)
+  if(bufsz <= 0 || p->uid != 0)    // admin-only
     return -1;
-  if(bufsz > PGSIZE)
+  if(bufsz > PGSIZE)               // cap at one page to limit kernel memory use
     bufsz = PGSIZE;
-  if((kbuf = kalloc()) == 0)
+  if((kbuf = kalloc()) == 0)       // allocate kernel page for safe copyout
     return -1;
   n = audit_read(kbuf, bufsz);
   if(n >= 0 && copyout(p->pagetable, addr, kbuf, n) < 0)
