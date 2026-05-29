@@ -59,7 +59,7 @@ struct audit_entry {
   char comm[16];      // first 15 chars of p->name
 };
 
-#define AUDIT_RING_SIZE 256
+#define AUDIT_BUF_SIZE 256
 ```
 
 ## `audit_log()` Implementation
@@ -92,7 +92,7 @@ In this repository, the hook is placed in `kernel/syscall.c` after syscall dispa
 
 ## Trap-Level Audit Printing
 
-`kernel/trap.c` uses `usertrap()` to intercept every syscall at the ECALL boundary. Security events are recorded into the ring buffer via `audit_log()` from the appropriate syscall handlers rather than printed directly from the trap handler — printing from the trap handler would cause recursive spam since `printf` itself invokes `write` syscalls, one character at a time.
+`kernel/trap.c` uses `usertrap()` to intercept every syscall at the ECALL boundary. Security events are recorded into the ring buffer via `audit_log()` from the appropriate syscall handlers rather than printed directly from the trap handler. Printing from the trap handler would cause recursive spam, because `printf` itself invokes `write` syscalls, one character at a time. Each printed character would log another trap, which would print again.
 
 The ring buffer approach is the correct mechanism: use `audit_dump` to inspect the captured entries after a session.
 
@@ -121,15 +121,14 @@ Inside xv6, the admin can run:
 
 ```sh
 $ audit_dump
-PID  UID  SYSCALL       RESULT  TICK  COMM
----  ---  -------       ------  ----  ----
-3    0    SYS_login     0       12    login
-4    0    SYS_open      3       45    sh
-4    2    SYS_open      -1      67    compliance
-4    0    SYS_audit_r   0       89    compliance
+tick pid uid syscall result comm
+12 3 0 login 0 login
+45 4 1 open 3 sh
+67 4 1 open -1 compliance
+89 4 0 audit_read 0 compliance
 ```
 
-A `-1` result on `SYS_open` corresponds to a denied access, exactly the kind of evidence Phase 2 + Phase 3 together provide.
+The columns are `tick pid uid syscall result comm`. The syscall name has no `SYS_` prefix. A `-1` result on `open` is a denied access. In the sample above, uid 1 (patient) tried to open a file and got -1. That is exactly the kind of evidence Phase 2 and Phase 3 together provide.
 
 ![QEMU terminal showing audit_dump table with ring buffer entries](/img/screenshots/phase3-audit-dump.png)
 
