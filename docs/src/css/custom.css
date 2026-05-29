@@ -43,6 +43,41 @@ pre {
   border: 1px solid #30363d;
 }
 
+/* ─── Download PDF navbar button ─────────────────────────────── */
+.navbar-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: 0.5rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 100px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fff !important;
+  background: linear-gradient(135deg, #00b894, #00d4aa);
+  box-shadow: 0 4px 24px rgba(0, 212, 170, 0.35);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.navbar-pdf:hover {
+  color: #fff !important;
+  text-decoration: none;
+  box-shadow: 0 6px 32px rgba(0, 212, 170, 0.55);
+  transform: translateY(-1px);
+}
+
+.navbar-pdf svg {
+  flex-shrink: 0;
+}
+
+/* Keep the label on small screens but tighten spacing */
+@media (max-width: 600px) {
+  .navbar-pdf {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+  }
+}
+
 /* ─── Navbar ─────────────────────────────────────────────────── */
 [data-theme='dark'] .navbar {
   border-bottom: 1px solid #21262d;
