@@ -63,16 +63,12 @@ html, body {
 .cover__logo {
   position: absolute;
   top: 13mm;
-  left: 18mm;
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 7px 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  right: 18mm;
   line-height: 0;
 }
 
 .cover__logo img {
-  height: 19mm;
+  height: 24mm;
   width: auto;
   display: block;
 }
