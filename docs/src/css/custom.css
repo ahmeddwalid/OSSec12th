@@ -55,7 +55,7 @@ pre {
   font-size: 0.85rem;
   color: #fff !important;
   background: linear-gradient(135deg, #00b894, #00d4aa);
-  box-shadow: 0 4px 24px rgba(0, 212, 170, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
   transition: box-shadow 0.2s, transform 0.2s;
 }
 
