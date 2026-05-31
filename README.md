@@ -171,31 +171,7 @@ audit_dump
 
 ## Compliance Results
 
-```
-COMPLIANCE REPORT: CCY4304 12th Project
-Team: Ahmed Walid Ibrahim (221011183) & Jana Ashraf Ali (221010291)
-─────────────────────────────────────────────────────────────
-[PASS] T01 valid_admin_login
-[PASS] T02 valid_patient_login
-[PASS] T03 wrong_password_rejected
-[PASS] T04 whoami_returns_username
-[PASS] T05 useradd_by_patient_denied
-[PASS] T06 userdel_by_patient_denied
-[PASS] T07 patient_cannot_open_config
-[PASS] T08 patient_can_read_records
-[PASS] T09 patient_cannot_write_records
-[PASS] T10 doctor_can_write_dosage
-[PASS] T11 doctor_cannot_read_config
-[PASS] T12 admin_can_open_all
-[PASS] T13 patient_cannot_read_audit
-[PASS] T14 admin_can_read_audit
-[PASS] T15 audit_records_denied_open
-[PASS] T16 audit_records_successful_write
-[PASS] T17 end_to_end_attack_detection
-[PASS] T18 all_phases_active
-─────────────────────────────────────────────────────────────
-Passed: 18 / 18   Failed: 0 / 18
-```
+[![Compliance Test Results](docs/static/img/screenshots/compliance-full-pass.png)](docs/static/img/screenshots/compliance-full-pass.png)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
