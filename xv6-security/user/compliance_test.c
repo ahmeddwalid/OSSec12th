@@ -9,6 +9,8 @@
 // logs in as the relevant role, performs an operation, and checks the result.
 // login() is called before every test because xv6 has no logout — switching
 // identity means re-calling login on the current process.
+static int pass_count;
+static int fail_count;
 static struct audit_entry audit_entries[AUDIT_BUF_SIZE];
 
 #define ASSERT_EQ(label, got, expected) do { \
@@ -174,7 +176,9 @@ main(void)
   // this proves the audit trail can detect attacks — not just record activity.
   login("patient1", "patient123");
   attack_ret = open_close("/device/config", O_RDONLY);
-  ASSERT_EQ("T17 attack denied and detected in audit", attack_ret == -1 && audit_has(SYS_open, -1, 1), 1); = login("admin", "admin123") == 0 &&
+  ASSERT_EQ("T17 attack denied and detected in audit", attack_ret == -1 && audit_has(SYS_open, -1, 1), 1);
+
+  phases_ok = login("admin", "admin123") == 0 &&
               open_close("/device/config", O_RDONLY) >= 0 &&
               load_audit_as_admin() > 0;
   ASSERT_EQ("T18 all three phases active simultaneously", phases_ok, 1);

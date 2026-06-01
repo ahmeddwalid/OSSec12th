@@ -192,7 +192,7 @@ fail:
 static int
 read_passwd(struct credential creds[], int max)
 {
-  char buf[PASSWD_BUF_SIZE];
+  static char buf[PASSWD_BUF_SIZE]; // kept off the 1-page kernel stack
   struct inode *ip;
   int n;
 
@@ -214,7 +214,7 @@ read_passwd(struct credential creds[], int max)
 static int
 write_passwd(struct credential creds[], int count)
 {
-  char buf[PASSWD_BUF_SIZE];
+  static char buf[PASSWD_BUF_SIZE]; // kept off the 1-page kernel stack
   int off = 0;
   struct inode *ip;
   int wrote;
@@ -346,8 +346,8 @@ pw_hash(const char *password, char *out_hex)
   }
 
   for(i = 0; i < 8; i++)
-    for(j = 28; j >= 0; j -= 4)
-      *out_hex++ = hex[(H[i] >> j) & 0xf];
+    for(int shift = 28; shift >= 0; shift -= 4)
+      *out_hex++ = hex[(H[i] >> shift) & 0xf];
   *out_hex = 0;
 }
 
