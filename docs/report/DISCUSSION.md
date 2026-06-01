@@ -10,10 +10,11 @@
 2. [Phase 1 — User Authentication](#2-phase-1--user-authentication)
 3. [Phase 2 — File Access Control](#3-phase-2--file-access-control)
 4. [Phase 3 — Syscall Audit Log](#4-phase-3--syscall-audit-log)
-5. [Ring Buffer Deep-Dive](#5-ring-buffer-deep-dive)
-6. [Full Walkthrough: Step-by-Step Commands](#6-full-walkthrough-step-by-step-commands)
-7. [Compliance Testing](#7-compliance-testing)
-8. [Command Reference Table](#8-command-reference-table)
+5. [Trap Handling](#5-trap-handling)
+6. [Ring Buffer Deep-Dive](#6-ring-buffer-deep-dive)
+7. [Full Walkthrough: Step-by-Step Commands](#7-full-walkthrough-step-by-step-commands)
+8. [Compliance Testing](#8-compliance-testing)
+9. [Command Reference Table](#9-command-reference-table)
 
 ---
 
@@ -328,7 +329,217 @@ Non-admin users cannot even reveal the buffer size. Audit data is treated as sen
 
 ---
 
-## 5. Ring Buffer Deep-Dive
+## 5. Trap Handling
+
+### What Is a Trap?
+
+A **trap** is the RISC-V mechanism that transfers control from user mode to supervisor mode (kernel). There are three sources of traps in xv6:
+
+| Cause | `scause` | Description |
+|-------|----------|-------------|
+| System call | 8 | User program executes `ecall` instruction |
+| Device interrupt | 0x8000000000000009 | External interrupt via PLIC (UART, disk, timer) |
+| Page fault | 12/13/15 | Access violation or lazy allocation |
+
+### The Trap Flow
+
+When a trap occurs, the CPU:
+1. Saves the current execution mode in `sstatus.SPP` (Supervisor Previous Privilege)
+2. Saves the program counter in `sepc` (Supervisor Exception Program Counter)
+3. Saves the trap cause in `scause`
+4. Sets the program counter to the address in `stvec` (Supervisor Trap Vector)
+5. Switches to supervisor mode
+
+### Trap Vector Routing
+
+RISC-V has only one trap vector (`stvec`), but xv6 dynamically switches which handler it points to depending on context:
+
+| Context | `stvec` points to | File |
+|---------|-------------------|------|
+| User process running | `uservec` in trampoline.S | trampoline.S:22 |
+| Inside kernel | `kernelvec` in kernelvec.S | kernelvec.S:12 |
+
+**Switching logic:** When `usertrap()` is entered (from user space), it immediately sets `stvec` to `kernelvec` so that any subsequent interrupt while executing kernel code is handled by `kerneltrap()`. Before returning to user space, `prepare_return()` sets `stvec` back to `uservec` so the next user-space trap re-enters the kernel through the trampoline.
+
+### Key Code: `usertrap()` — Entry from User Space (kernel/trap.c:37-94)
+
+```c
+uint64 usertrap(void) {
+  if((r_sstatus() & SSTATUS_SPP) != 0)
+    panic("usertrap: not from user mode");
+
+  w_stvec((uint64)kernelvec);              // redirect future traps to kerneltrap
+
+  struct proc *p = myproc();
+  p->trapframe->epc = r_sepc();            // save user PC
+
+  if(r_scause() == 8){
+    // SYSTEM CALL — scause=8 means ecall from user mode
+    if(killed(p))
+      kexit(-1);
+    p->trapframe->epc += 4;                // advance past ecall instruction
+    intr_on();                             // enable interrupts during syscall
+    syscall();                             // → dispatches to syscalls[] then audit_log()
+  } else if((which_dev = devintr()) != 0){
+    // DEVICE INTERRUPT — timer, UART, or disk
+  } else if(...){
+    // PAGE FAULT — try lazy allocation via vmfault()
+  } else {
+    printf("usertrap(): unexpected scause ...");
+    setkilled(p);                          // kill the process
+  }
+
+  if(killed(p)) kexit(-1);
+  if(which_dev == 2) yield();              // timer interrupt → reschedule
+  prepare_return();                        // set up trampoline for return to user
+  return MAKE_SATP(p->pagetable);          // return user page table to trampoline.S
+}
+```
+
+**Step by step:**
+1. Verify we came from user mode (`SSTATUS_SPP` must be 0)
+2. Redirect `stvec` to `kernelvec` — any nested interrupt goes to `kerneltrap()`
+3. Save the user's program counter from `sepc` to `p->trapframe->epc`
+4. Check `scause`:
+   - **8 (syscall):** Advance PC by 4 bytes (past `ecall`), enable interrupts, call `syscall()` which dispatches to `syscalls[num]()` and then calls `audit_log()`
+   - **Interrupt:** Handle via `devintr()` (timer/UART/disk)
+   - **Page fault:** Try `vmfault()` for lazy allocation
+   - **Other:** Kill the process
+5. If killed, exit. If timer interrupt, yield CPU to scheduler.
+6. Call `prepare_return()` to re-arm user-space trap vector
+7. Return the user page table SATP value to trampoline.S for the page table switch
+
+### Key Code: `prepare_return()` — Re-arm for User Return (kernel/trap.c:99-131)
+
+```c
+void prepare_return(void) {
+  struct proc *p = myproc();
+  intr_off();                                              // disable interrupts
+
+  uint64 trampoline_uservec = TRAMPOLINE + (uservec - trampoline);
+  w_stvec(trampoline_uservec);                             // point stvec back to uservec
+
+  p->trapframe->kernel_satp = r_satp();                    // kernel page table
+  p->trapframe->kernel_sp = p->kstack + PGSIZE;            // kernel stack top
+  p->trapframe->kernel_trap = (uint64)usertrap;            // re-entry address
+  p->trapframe->kernel_hartid = r_tp();                    // CPU hart ID
+
+  unsigned long x = r_sstatus();
+  x &= ~SSTATUS_SPP;                                       // set SPP to User mode
+  x |= SSTATUS_SPIE;                                       // enable interrupts in user
+  w_sstatus(x);
+  w_sepc(p->trapframe->epc);                               // restore user PC
+}
+```
+
+This writes four values into the process's `trapframe` page so that `uservec` in trampoline.S can find them next time this process traps. It also sets `sstatus.SPP` to User mode so `sret` returns to user space.
+
+### Key Code: `kerneltrap()` — Interrupts While in Kernel (kernel/trap.c:136-162)
+
+```c
+void kerneltrap() {
+  uint64 sepc = r_sepc();
+  uint64 sstatus = r_sstatus();
+  uint64 scause = r_scause();
+
+  if((sstatus & SSTATUS_SPP) == 0)
+    panic("kerneltrap: not from supervisor mode");
+  if(intr_get() != 0)
+    panic("kerneltrap: interrupts enabled");
+
+  if((which_dev = devintr()) == 0){
+    printf("scause=...");
+    panic("kerneltrap");               // unknown trap in kernel = fatal
+  }
+  if(which_dev == 2 && myproc() != 0)
+    yield();                           // timer → reschedule
+
+  w_sepc(sepc);                        // restore context for sret
+  w_sstatus(sstatus);
+}
+```
+
+`kerneltrap()` handles interrupts that occur while the CPU is already executing kernel code. It's much simpler than `usertrap()` because:
+- No syscall handling (you can't `ecall` from supervisor mode)
+- No page faults (kernel memory is fully mapped)
+- Only device interrupts (timer, UART, disk) are expected
+
+### Key Code: `trampoline.S` — Assembly Bridge (kernel/trampoline.S)
+
+The trampoline page is mapped at the **same virtual address** (`TRAMPOLINE`) in both user and kernel page tables. This is critical because:
+
+1. **`uservec`** saves all 32 user registers into `p->trapframe`, loads the kernel page table, kernel stack, and jumps to `usertrap()`
+2. **`userret`** switches back to the user page table, restores all user registers, and executes `sret` to return to user mode
+
+```asm
+# uservec: entry from user space
+csrw sscratch, a0            # stash user a0
+li a0, TRAPFRAME             # get trapframe address
+sd ra, 40(a0)                # save all registers to trapframe
+...
+ld sp, 8(a0)                 # load kernel stack pointer
+ld tp, 32(a0)                # load hartid
+ld t0, 16(a0)                # load address of usertrap()
+ld t1, 0(a0)                 # load kernel page table
+csrw satp, t1                # switch to kernel page table
+jalr t0                      # jump to usertrap()
+
+# userret: return to user space
+csrw satp, a0                # switch to user page table (a0 from usertrap)
+li a0, TRAPFRAME
+ld ra, 40(a0)                # restore all registers from trapframe
+...
+ld a0, 112(a0)               # restore user a0
+sret                         # return to user mode
+```
+
+### Key Code: `kernelvec.S` — Kernel-Space Trap Entry (kernel/kernelvec.S)
+
+```asm
+kernelvec:
+    addi sp, sp, -256         # make room on kernel stack
+    sd ra, 0(sp)              # save caller-saved registers
+    ...
+    call kerneltrap            # handle the interrupt
+    ld ra, 0(sp)              # restore registers
+    ...
+    addi sp, sp, 256          # restore stack
+    sret                      # return to interrupted kernel code
+```
+
+### Where the Audit Hook Fits
+
+The full call chain for a system call is:
+
+```
+User program → ecall → uservec (trampoline.S)
+  → usertrap() (trap.c:38)
+    → syscall() (syscall.c:149)
+      → syscalls[num]()       // dispatch to specific syscall
+      → audit_log(num, ret)   // ← AUDIT HOOK: log every syscall
+    → prepare_return() (trap.c:100)
+  → userret (trampoline.S)
+→ sret → back to user program
+```
+
+The audit hook in `syscall()` (line 166) is positioned so it records every system call — pass or fail — at the exact point after the syscall returns. This placement is critical because `syscall()` is the single choke-point through which every system call passes.
+
+### Why Traps Matter for Security
+
+Every security check in this project is enforced inside a **trap handler**:
+
+| Security Feature | Where It Runs | Trap Path |
+|-----------------|---------------|-----------|
+| Login | `sys_login()` → `auth_login()` | `ecall` → `usertrap` → `syscall` |
+| File permission check | `sys_open()` / `fileread()` / `filewrite()` / `sys_exec()` | `ecall` → `usertrap` → `syscall` |
+| Audit logging | `audit_log()` called from `syscall()` | Runs inside every `usertrap` syscall path |
+| User management | `sys_useradd()` / `sys_userdel()` / `sys_passwd()` | `ecall` → `usertrap` → `syscall` |
+
+Without the trap mechanism, user code could never enter the kernel, and none of the three security phases could function. The kernel is only reachable through traps, and traps are the only way to switch from the unprivileged user mode (`U-mode`) to the privileged supervisor mode (`S-mode`) on RISC-V.
+
+---
+
+## 6. Ring Buffer Deep-Dive
 
 ### What Is a Ring Buffer?
 
@@ -435,9 +646,9 @@ audit_read() returns entries 2 through 257, in order.
 
 ---
 
-## 6. Full Walkthrough: Step-by-Step Commands
+## 7. Full Walkthrough: Step-by-Step Commands
 
-### 6.1 Build and Boot
+### 7.1 Build and Boot
 
 ```bash
 cd xv6-security
@@ -454,7 +665,7 @@ Username:
 
 ---
 
-### 6.2 Login as Admin
+### 7.2 Login as Admin
 
 At the prompt:
 ```
@@ -470,7 +681,7 @@ $
 
 ---
 
-### 6.3 Check Identity with `whoami`
+### 7.3 Check Identity with `whoami`
 
 ```
 $ whoami
@@ -481,7 +692,7 @@ admin uid=0 gid=0 role=0
 
 ---
 
-### 6.4 Add a New User with `useradd`
+### 7.4 Add a New User with `useradd`
 
 ```
 $ useradd nurse nurse123 1
@@ -509,7 +720,7 @@ nurse uid=1 gid=1 role=1
 
 ---
 
-### 6.5 Test Permission Denied: Non-Admin Cannot Add Users
+### 7.5 Test Permission Denied: Non-Admin Cannot Add Users
 
 Log in as `patient1`:
 ```
@@ -527,7 +738,7 @@ useradd: failed
 
 ---
 
-### 6.6 Change Password with `passwd`
+### 7.6 Change Password with `passwd`
 
 Log in as `doctor1`:
 ```
@@ -547,7 +758,7 @@ $ passwd doctor1 doctor123 doctor456
 
 ---
 
-### 6.7 File Permission Tests
+### 7.7 File Permission Tests
 
 Log in as admin:
 ```
@@ -603,7 +814,7 @@ $ echo test > /patient/records
 
 ---
 
-### 6.8 Change File Permissions with `chmod`
+### 7.8 Change File Permissions with `chmod`
 
 Log in as admin:
 ```
@@ -623,7 +834,7 @@ $ chmod /device/config 0640
 
 ---
 
-### 6.9 Change File Ownership with `chown`
+### 7.9 Change File Ownership with `chown`
 
 ```
 $ chown 1 1 /dosage/insulin.log
@@ -635,7 +846,7 @@ $ chown 1 1 /dosage/insulin.log
 
 ---
 
-### 6.10 Delete a User with `userdel`
+### 7.10 Delete a User with `userdel`
 
 ```
 $ userdel nurse
@@ -657,7 +868,7 @@ if(streq(username, "admin"))  // admin account is permanent
 
 ---
 
-### 6.11 View the Audit Log with `audit_dump`
+### 7.11 View the Audit Log with `audit_dump`
 
 ```
 $ audit_dump
@@ -685,7 +896,7 @@ tick pid uid syscall result comm
 
 ---
 
-### 6.12 Non-Admin Cannot Read Audit Log
+### 7.12 Non-Admin Cannot Read Audit Log
 
 Log in as patient:
 ```
@@ -703,7 +914,7 @@ Permission denied.
 
 ---
 
-### 6.13 Run `perm_test`
+### 7.13 Run `perm_test`
 
 Log in as admin:
 ```
@@ -728,7 +939,7 @@ perm_test: 3 passed, 0 failed
 
 ---
 
-## 7. Compliance Testing
+## 8. Compliance Testing
 
 ### Running the Full Test Suite
 
@@ -790,7 +1001,7 @@ $ compliance_test
 
 ---
 
-## 8. Command Reference Table
+## 9. Command Reference Table
 
 | Command | Syntax | Purpose | Syscall | Who Can Run |
 |---------|--------|---------|---------|-------------|
@@ -833,6 +1044,9 @@ $ compliance_test
 | `kernel/auth.h` | Role constants, credential struct, function prototypes |
 | `kernel/perms.c` | File permission checking: `perm_check()` |
 | `kernel/perms.h` | Unix permission bit constants (0400-0001) |
+| `kernel/trap.c` | Trap handling: usertrap, kerneltrap, prepare_return, clock interrupt |
+| `kernel/trampoline.S` | Assembly bridge: saves/restores user registers, switches page tables |
+| `kernel/kernelvec.S` | Kernel-space trap entry: saves registers, calls kerneltrap, sret return |
 | `kernel/audit.c` | Ring buffer: init, log, read |
 | `kernel/audit.h` | Audit entry struct, AUDIT_BUF_SIZE |
 | `kernel/syscall.c` | Syscall dispatch + audit hook on every syscall |
