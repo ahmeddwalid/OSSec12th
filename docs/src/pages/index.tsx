@@ -94,8 +94,8 @@ const COMPLIANCE_LINES = [
 
 /* ─── team members ─── */
 const TEAM = [
-  { name: 'Ahmed Walid Ibrahim', id: '221011183', img: '/img/Ahmed Walid.png', linkedin: 'https://www.linkedin.com/in/ahmeddwalid/' },
-  { name: 'Jana Ashraf Ali', id: '221010291', img: '/img/Jana Ashraf.png', linkedin: 'https://www.linkedin.com/in/janaaashraf/' },
+  { name: 'Ahmed Walid Ibrahim', id: '221011183', linkedin: 'https://www.linkedin.com/in/ahmeddwalid/' },
+  { name: 'Jana Ashraf Ali', id: '221010291', linkedin: 'https://www.linkedin.com/in/janaaashraf/' },
 ];
 
 /* ════════════════════════════════════════════════════════════
@@ -294,7 +294,7 @@ function Team(): React.ReactElement {
         <div className={styles.teamGrid}>
           {TEAM.map((m) => (
             <a key={m.id} href={m.linkedin} target="_blank" rel="noreferrer" className={styles.teamCard}>
-              <img src={m.img} alt={m.name} className={styles.teamAvatar} />
+
               <div className={styles.teamName}>{m.name}</div>
               <div className={styles.teamId}>ID: {m.id}</div>
               <span className={styles.linkedinBadge}>

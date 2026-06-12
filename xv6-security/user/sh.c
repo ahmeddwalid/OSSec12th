@@ -163,6 +163,11 @@ main(void)
       cmd++;
     if (*cmd == '\n') // is a blank command
       continue;
+    if((cmd[0] == 'e' && cmd[1] == 'x' && cmd[2] == 'i' && cmd[3] == 't') &&
+       (cmd[4] == '\n' || cmd[4] == 0 || cmd[4] == ' ')){
+      // Exit must be handled by the shell itself, not a child.
+      exit(0);
+    }
     if(cmd[0] == 'c' && cmd[1] == 'd' && cmd[2] == ' '){
       // Chdir must be called by the parent, not the child.
       cmd[strlen(cmd)-1] = 0;  // chop \n
